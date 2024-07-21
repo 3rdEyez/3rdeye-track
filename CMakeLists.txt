@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 
 project(3rdeye-track)
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/test/ncnn_predict)
+
+
 # file(DOWNLOAD "https://github.com/Tencent/ncnn/releases/download/20240410/ncnn-20240410-windows-vs2017-shared.zip"
 #      "ncnn-20240410-windows-vs2017-shared.zip"
 #      STATUS status

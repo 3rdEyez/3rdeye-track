@@ -11,9 +11,11 @@ endif()
 
 find_package(OpenCV REQUIRED)
 
+add_definitions(-DNCNN_USE_GPU)
+
 add_executable(ncnn_predict
     ${CMAKE_SOURCE_DIR}/src/ncnn_detector.cpp
-    ${CMAKE_SOURCE_DIR}/src/image_utils.cpp
+    ${CMAKE_SOURCE_DIR}/src/detect_utils.cpp
     main.cpp
     )
 

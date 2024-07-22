@@ -1,6 +1,7 @@
 #ifndef __3RDEYE_COMMON_H__
 
 #include <vector>
+#include <unordered_map>
 #include <cstdint>
 
 
@@ -13,20 +14,19 @@ typedef struct {
     uint32_t cls;
 }BBox;
 
-typedef struct {
-    uint32_t x;
-    uint32_t y;
-    uint32_t w;
-    uint32_t h;
-}xywh_box;
-
+// default BBox type is xywh
+typedef BBox BBox_xywh;
 
 typedef struct {
-    uint32_t x1;
-    uint32_t y1;
-    uint32_t x2;
-    uint32_t y2;
-} xyxy_box;
+    float x1;
+    float y1;
+    float x2;
+    float y2;
+    float score;
+    uint32_t cls;
+}BBox_xyxy;
+
+
 
 #define __3RDEYE_COMMON_H__
 #endif /* __3RDEYE_COMMON_H__ */

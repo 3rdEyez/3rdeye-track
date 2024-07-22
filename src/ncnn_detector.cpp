@@ -1,4 +1,5 @@
 #include "ncnn_detector.h"
+#include "detect_utils.h"
 
 bool ncnn_detector::hasGPU = false;
 
@@ -73,5 +74,6 @@ std::vector<BBox> ncnn_detector::detect(const cv::Mat &img, float score_threshol
             valid_result.push_back(box);
         }
     }
-    return valid_result;
+    return nms(valid_result, nms_threshold);
 }
+

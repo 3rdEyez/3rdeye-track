@@ -1,7 +1,8 @@
 #include <net.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include "image_utils.h"
+#include <opencv2/imgproc/imgproc.hpp>
+#include "detect_utils.h"
 #include "ncnn_detector.h"
 
 int main(int argc, char const *argv[])
@@ -20,7 +21,7 @@ int main(int argc, char const *argv[])
         "E:/Repo/3rdeye-track/model/ncnn/yolov8m.bin",
         true
     );
-    auto bboxes = detector.detect(img, 0.2f, 0.5f);
+    auto bboxes = detector.detect(img, 0.2f, 0.4f);
     for (auto &bbox : bboxes) {
         printf("%f %f %f %f %f %d\n", bbox.x, bbox.y, bbox.w, bbox.h, bbox.score, bbox.cls);
         int x1 = (int)(bbox.x - bbox.w / 2);
@@ -28,7 +29,7 @@ int main(int argc, char const *argv[])
         int x2 = (int)(bbox.x + bbox.w / 2);
         int y2 = (int)(bbox.y + bbox.h / 2);
 
-        cv::rectangle(img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(0, 0, 255), 2);
+        cv::rectangle(img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(0, 0, 255), 1);
     }
     cv::imshow("result", img);
     cv::waitKey(0);

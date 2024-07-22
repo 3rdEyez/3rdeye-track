@@ -19,14 +19,13 @@ ncnn_detector::~ncnn_detector()
     delete this->net;
 }
 
-void ncnn_detector::preprocess(const cv::Mat &img, ncnn::Mat &in)
+void ncnn_detector::preprocess(const cv::Mat &img, ncnn::Mat &in, letterbox_info &info)
 {
-    int img_w = img.cols;
-    int img_h = img.rows;
-
-    in = ncnn::Mat::from_pixels(img.data, ncnn::Mat::PIXEL_BGR, img_w, img_h);
-    // const float mean_vals[3] = { 103.53f, 116.28f, 123.675f };
-    // const float norm_vals[3] = { 0.017429f, 0.017507f, 0.017125f };
+    cv::Mat img_copy = img.clone();
+    letterbox(img_copy, imgsz[0], imgsz[1], info);
+    int img_w = img_copy.cols;
+    int img_h = img_copy.rows;
+    in = ncnn::Mat::from_pixels(img_copy.data, ncnn::Mat::PIXEL_BGR, img_w, img_h);
     const float mean_vals[3] = { 128.0f, 128.0f, 128.0f };
     const float norm_vals[3] = { 1 / 128.0f, 1 / 128.0f, 1 / 128.0f };
     in.substract_mean_normalize(mean_vals, norm_vals);
@@ -35,7 +34,8 @@ void ncnn_detector::preprocess(const cv::Mat &img, ncnn::Mat &in)
 std::vector<BBox> ncnn_detector::detect(const cv::Mat &img, float score_threshold, float nms_threshold)
 {
     ncnn::Mat in, out;
-    this->preprocess(img, in);
+    letterbox_info info;
+    this->preprocess(img, in, info);
     auto ex = this->net->create_extractor();
 #ifdef NCNN_USE_GPU
     ex.set_vulkan_compute(this->hasGPU);
@@ -74,6 +74,13 @@ std::vector<BBox> ncnn_detector::detect(const cv::Mat &img, float score_threshol
             valid_result.push_back(box);
         }
     }
-    return nms(valid_result, nms_threshold);
+    valid_result = nms(valid_result, nms_threshold);
+    for (auto &box : valid_result) {
+        box.x = (box.x - info.offset_x) / (info.scale + 0.001f);
+        box.y = (box.y - info.offset_y) / (info.scale + 0.001f);
+        box.w = box.w / (info.scale + 0.001f);
+        box.h = box.h / (info.scale + 0.001f);
+    }
+    return valid_result;
 }
 

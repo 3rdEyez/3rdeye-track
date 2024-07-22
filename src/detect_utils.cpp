@@ -1,10 +1,12 @@
 #include <opencv2/imgproc.hpp>
 #include "detect_utils.h"
 
-void letterbox(cv::Mat& img, int new_width, int new_height, int &offset_x, int &offset_y, float &scale)
+void letterbox(cv::Mat& img, int new_width, int new_height, letterbox_info& info)
 {
     int width = img.cols;
     int height = img.rows;
+    int & offset_x = info.offset_x, & offset_y = info.offset_y;
+    float & scale = info.scale;
     scale = std::min((float)new_width / (float)width, (float)new_height / (float)height);
     int new_unscaled_width = (int)(scale * (float)width);
     int new_unscaled_height = (int)(scale * (float)height);
@@ -24,6 +26,10 @@ BBox_xyxy xywh2xyxy(BBox_xywh box)
     return BBox_xyxy{x - w / 2, y - h / 2, x + w / 2, y + h / 2};
 }
 
+BBox xywh2xyxy(float x, float y, float w, float h)
+{
+    return BBox{x - w / 2, y - h / 2, x + w / 2, y + h / 2};
+}
 
 float bbox_iou(BBox_xyxy box1, BBox_xyxy box2)
 {

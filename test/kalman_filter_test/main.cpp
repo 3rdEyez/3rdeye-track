@@ -1,7 +1,6 @@
 #include "kalman_filter.h"
 #include <cstdio>
 
-template class KalmanFilter<7>;
 
 int main(int argc, char const *argv[])
 {

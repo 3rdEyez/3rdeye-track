@@ -19,5 +19,7 @@ KalmanFilter<x_dim>::KalmanFilter(
 template<int x_dim>
 KalmanFilter<x_dim>::~KalmanFilter()
 {
-    
+
 }
+
+template class KalmanFilter<7>;

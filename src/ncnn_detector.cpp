@@ -26,8 +26,8 @@ void ncnn_detector::preprocess(const cv::Mat &img, ncnn::Mat &in, letterbox_info
     int img_w = img_copy.cols;
     int img_h = img_copy.rows;
     in = ncnn::Mat::from_pixels(img_copy.data, ncnn::Mat::PIXEL_BGR, img_w, img_h);
-    const float mean_vals[3] = { 128.0f, 128.0f, 128.0f };
-    const float norm_vals[3] = { 1 / 128.0f, 1 / 128.0f, 1 / 128.0f };
+    const float mean_vals[3] = { 0.0f, 0.0f, 0.0f };
+    const float norm_vals[3] = { 1 / 255.0f, 1 / 255.0f, 1 / 255.0f };
     in.substract_mean_normalize(mean_vals, norm_vals);
 }
 
@@ -37,9 +37,6 @@ std::vector<BBox> ncnn_detector::detect(const cv::Mat &img, float score_threshol
     letterbox_info info;
     this->preprocess(img, in, info);
     auto ex = this->net->create_extractor();
-#ifdef NCNN_USE_GPU
-    ex.set_vulkan_compute(this->hasGPU);
-#endif
     ex.input("in0", in);
     ex.extract("out0", out);
     std::vector<BBox> result(out.w, { 0, 0, 0, 0, 0, 0 });

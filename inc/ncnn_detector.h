@@ -1,10 +1,9 @@
 #ifndef __NCNN_DETECTOR_H__
 #define __NCNN_DETECTOR_H__
 
-#include "common.h"
 #include <net.h>
 #include <opencv2/core/core.hpp>
-
+#include "detect_utils.h"
 
 class ncnn_detector
 {
@@ -14,7 +13,7 @@ public:
 
     ncnn::Net *net;
     static bool hasGPU;
-    int input_size[2] = {640, 640};
+    int imgsz[2] = {640, 640};
     int num_class = 80;
     std::vector<BBox> detect(const cv::Mat &img, float score_threshold, float nms_threshold);
     std::vector<std::string> names { 
@@ -29,7 +28,7 @@ public:
         "hair drier", "toothbrush" };
 
 private:
-    void preprocess(const cv::Mat &img, ncnn::Mat &in);
+    void preprocess(const cv::Mat &img, ncnn::Mat &in, letterbox_info &info);
 };
 
 #endif // __NCNN_DETECTOR_H__

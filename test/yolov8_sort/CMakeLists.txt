@@ -32,6 +32,7 @@ target_link_libraries(
 
 # some definitions
 add_definitions(-DNCNN_USE_GPU)
+add_definitions(-DSAVE_VIDEO)
 
 # check YOLOV8_NCNN_MODEL is set
 set(YOLOV8_NCNN_MODEL_SET ${YOLOV8_NCNN_MODEL})

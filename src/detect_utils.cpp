@@ -142,6 +142,11 @@ void draw_tracks(cv::Mat& img, tracks_t &tracks, int thickness)
         auto track_id = item.first;
         auto track = item.second;
         if (track.size() > 1) {
+            auto box = xywh2xyxy(track.back());
+            auto leftBottom = cv::Point((int)box.x1 + 5, (int)box.y2 - 15);
+            auto c = color_list[track_id % 80];
+            auto color = cv::Scalar(c[0], c[1], c[2]);
+            cv::putText(img, "id=" + std::to_string(track_id), leftBottom, cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 2);
             for (size_t i = 1; i < track.size(); i++) {
                 auto p1 = track[i];
                 auto p2 = track[i - 1];
@@ -149,8 +154,7 @@ void draw_tracks(cv::Mat& img, tracks_t &tracks, int thickness)
                     y1 = static_cast<int>(p1.y),
                     x2 = static_cast<int>(p2.x),
                     y2 = static_cast<int>(p2.y);
-                    auto c = color_list[track_id % 80];
-                cv::line(img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(c[0], c[1], c[2]), thickness);
+                cv::line(img, cv::Point(x1, y1), cv::Point(x2, y2), color, thickness);
             }
         }
     }

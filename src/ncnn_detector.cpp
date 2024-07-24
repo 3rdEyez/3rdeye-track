@@ -6,7 +6,7 @@ bool ncnn_detector::hasGPU = false;
 ncnn_detector::ncnn_detector(const char* param, const char* bin, bool useGPU)
 {
     this->net = new ncnn::Net();
-#ifdef NCNN_USE_GPU
+#if NCNN_USE_GPU
     this->hasGPU = ncnn::get_gpu_count() > 0;
 #endif
     this->net->opt.use_vulkan_compute = this->hasGPU && useGPU;

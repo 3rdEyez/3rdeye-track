@@ -8,6 +8,7 @@ else()
     message(STATUS "ncnn found at ${ncnn_DIR}")
 endif()
 
+set(OpenCV_STATIC ON)
 find_package(OpenCV REQUIRED)
 
 add_executable(yolov8_sort
@@ -29,6 +30,7 @@ target_link_libraries(
     ncnn
     ${OpenCV_LIBS}
 )
+
 
 # some definitions
 add_definitions(

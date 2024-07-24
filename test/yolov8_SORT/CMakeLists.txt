@@ -15,6 +15,7 @@ add_executable(yolov8_sort
 ${CMAKE_SOURCE_DIR}/src/ncnn_detector.cpp
 ${CMAKE_SOURCE_DIR}/src/detect_utils.cpp
 ${CMAKE_SOURCE_DIR}/src/kalman_filter.cpp
+${CMAKE_SOURCE_DIR}/src/sort_tracker.cpp
 ${CMAKE_SOURCE_DIR}/3rd_party/hungarian-algorithm-cpp/Hungarian.cpp
 main.cpp
 )

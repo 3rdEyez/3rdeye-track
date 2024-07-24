@@ -10,8 +10,10 @@
 
 constexpr int MAX_AGE=20;
 constexpr int TRACK_MAX_LEN=20;
-constexpr float SIGMA_Q = 0.01f;
-constexpr float SIGMA_R = 2.0f;
+constexpr float SIGMA_Q = 4.1f;
+constexpr float SIGMA_R = 5.0f;
+constexpr float DETECT_CONF_THRESH = 0.4f;
+constexpr float DETECT_NMS_IOU_THRESH = 0.5f;
 vector<uint64_t> assignment_maped_debug;
 
 #ifdef SAVE_VIDEO
@@ -57,7 +59,7 @@ int main(int argc, char const *argv[])
         // 检测
         cv::Mat frame_rgb;
         cv::cvtColor(frame, frame_rgb, cv::COLOR_BGR2RGB);
-        auto BBoxes = detector.detect(frame_rgb, 0.4f, 0.2f);
+        auto BBoxes = detector.detect(frame_rgb, DETECT_CONF_THRESH, DETECT_NMS_IOU_THRESH);
         BBoxes = bbox_select(BBoxes, 0); // 只挑出类别为0的目标(Persion)
         // 如果tracks为空，则初始化
         if (all_tracks.empty()) { 
@@ -65,7 +67,8 @@ int main(int argc, char const *argv[])
                 new_track_bboxes.push_back(bbox); // 后续根据new_track_bboxes来创建 track和 kf
             }
         }
-        else {
+        else
+        {
             std::vector<BBox> last_bbox_in_each_tracks; // 取出所有轨迹的最后一个bbox
             std::unordered_map<int, uint64_t> track_id_map; // 记录每个track在last_bbox_in_all_tracks中的索引对应的track号
             int idx = 0;
@@ -91,7 +94,8 @@ int main(int argc, char const *argv[])
             // 使用匈牙利算法匹配
             HungarianAlgorithm HungAlgo;
             vector<int> assignment;
-            double cost = HungAlgo.Solve(cost_matrix, assignment);
+            double cost;
+            if (m > 0 && n > 0) cost = HungAlgo.Solve(cost_matrix, assignment);
             assignment_maped_debug.clear();
             for (size_t i = 0; i < assignment.size(); i++) {
                 assignment_maped_debug.push_back(track_id_map[assignment[i]]);

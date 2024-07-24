@@ -31,19 +31,11 @@ target_link_libraries(
 )
 
 # some definitions
-add_definitions(-DNCNN_USE_GPU=0)
-add_definitions(-DSAVE_VIDEO)
-
-# check YOLOV8_NCNN_MODEL is set
-set(YOLOV8_NCNN_MODEL_SET ${YOLOV8_NCNN_MODEL})
-if(NOT YOLOV8_NCNN_MODEL_SET)
-    message(FATAL_ERROR "YOLOV8_NCNN_MODEL not set. "
-        "add -DYOLOV8_NCNN_MODEL=path/to/model to CMakeLists.txt or with cmake -DYOLOV8_NCNN_MODEL=path/to/model in command line")
-else()
-    # set YOLOV8_NCNN_MODEL defnition
-    add_definitions(-DYOLOV8_NCNN_MODEL="${YOLOV8_NCNN_MODEL}")
-    message(STATUS "YOLOV8_NCNN_MODEL=${YOLOV8_NCNN_MODEL}")
-endif()
+add_definitions(
+    -DSAVE_VIDEO
+    -DNCNN_USE_GPU=0
+    -DYOLOV8_NCNN_MODEL="${CMAKE_SOURCE_DIR}/model/ncnn/yolov8n-face_ncnn_model"
+    )
 
 # check TEST_VIDEO_FILE　is set
 set(TEST_VIDEO_FILE ${TEST_VIDEO_FILE})

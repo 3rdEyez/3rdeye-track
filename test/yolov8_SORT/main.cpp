@@ -33,8 +33,8 @@ int main(int argc, char const *argv[])
     uint64_t frame_id = 0;
 
     ncnn_detector detector(
-        YOLOV8_NCNN_MODEL".param",
-        YOLOV8_NCNN_MODEL".bin",
+        YOLOV8_NCNN_MODEL"/model.ncnn.param",
+        YOLOV8_NCNN_MODEL"/model.ncnn.bin",
         true
     );
 

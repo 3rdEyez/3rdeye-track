@@ -11,13 +11,13 @@ endif()
 find_package(OpenCV REQUIRED)
 
 add_executable(ncnn_predict
-${CMAKE_SOURCE_DIR}/src/ncnn_detector.cpp
-${CMAKE_SOURCE_DIR}/src/detect_utils.cpp
+${CMAKE_SOURCE_DIR}/3rdeye-track/src/ncnn_detector.cpp
+${CMAKE_SOURCE_DIR}/3rdeye-track/src/detect_utils.cpp
 main.cpp
 )
 
 include_directories(
-    ${CMAKE_SOURCE_DIR}/inc
+    ${CMAKE_SOURCE_DIR}/3rdeye-track/inc
 )
 
 target_link_libraries(

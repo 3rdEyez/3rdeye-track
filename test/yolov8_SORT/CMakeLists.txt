@@ -31,21 +31,8 @@ target_link_libraries(
     ${OpenCV_LIBS}
 )
 
-
 # some definitions
-add_definitions(
-    -DSAVE_VIDEO
-    -DNCNN_USE_GPU=0
-    -DYOLOV8_NCNN_MODEL="${CMAKE_SOURCE_DIR}/models/ncnn/yolov8n_ncnn_model"
-    )
-
-# check TEST_VIDEO_FILE　is set
-set(TEST_VIDEO_FILE ${TEST_VIDEO_FILE})
-if(NOT TEST_VIDEO_FILE)
-    message(FATAL_ERROR "TEST_VIDEO_FILE not set. "
-        "add -DTEST_VIDEO_FILE=path/to/image to CMakeLists.txt or with cmake -DTEST_VIDEO_FILE=path/to/image in command line")
-else()
-    # set TEST_VIDEO_FILE defnition
-    add_definitions(-DTEST_VIDEO_FILE="${TEST_VIDEO_FILE}")
-    message(STATUS "TEST_VIDEO_FILE=${TEST_VIDEO_FILE}")
-endif()
+add_definitions(-DSAVE_VIDEO
+                -DNCNN_USE_GPU=0
+                -DYOLOV8_NCNN_MODEL="${CMAKE_SOURCE_DIR}/models/ncnn/yolov8n_ncnn_model"
+                -DTEST_VIDEO_FILE="${TEST_VIDEO_FILE}")

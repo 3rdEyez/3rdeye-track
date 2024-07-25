@@ -102,3 +102,6 @@ models/
 *.param
 *.bin
 *.rknn
+
+# 忽略测试媒体文件
+media/

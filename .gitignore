@@ -91,7 +91,7 @@ Dockerfile
 *~.nib
 
 # 忽略模型文件
-model/
+models/
 *.pth
 *.pt
 *.h5

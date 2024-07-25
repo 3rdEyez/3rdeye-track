@@ -36,7 +36,7 @@ target_link_libraries(
 add_definitions(
     -DSAVE_VIDEO
     -DNCNN_USE_GPU=0
-    -DYOLOV8_NCNN_MODEL="${CMAKE_SOURCE_DIR}/model/ncnn/yolov8n-face_ncnn_model"
+    -DYOLOV8_NCNN_MODEL="${CMAKE_SOURCE_DIR}/models/ncnn/yolov8n_ncnn_model"
     )
 
 # check TEST_VIDEO_FILE　is set

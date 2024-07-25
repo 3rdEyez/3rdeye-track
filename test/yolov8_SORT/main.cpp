@@ -9,12 +9,12 @@
 #include "kalman_filter.h"
 #include "sort_tracker.h"
 
-constexpr int MAX_AGE=20;
-constexpr int TRACK_MAX_LEN=20;
-constexpr float SIGMA_Q = 4.1f;
+constexpr int MAX_AGE=15;
+constexpr int TRACK_MAX_LEN=15;
+constexpr float SIGMA_Q = 0.2f;
 constexpr float SIGMA_R = 5.0f;
 constexpr float DETECT_CONF_THRESH = 0.4f;
-constexpr float DETECT_NMS_IOU_THRESH = 0.5f;
+constexpr float DETECT_NMS_IOU_THRESH = 0.2f;
 
 #ifdef SAVE_VIDEO
 std::string outputVideoPath = "output_video.mp4";
@@ -37,13 +37,11 @@ int main(int argc, char const *argv[])
         true
     );
 
-    sort_tracker tracker(
-        SIGMA_Q,
-        SIGMA_R,
-        TRACK_MAX_LEN,
-        MAX_AGE
-    );
-
+    sort_tracker tracker_0(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
+    sort_tracker tracker_2(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
+    sort_tracker tracker_3(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
+    sort_tracker tracker_5(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
+    
     if(!cap.isOpened()) {
         std::cerr << "Error: Could not open camera" << std::endl;
         return -1;
@@ -66,15 +64,19 @@ int main(int argc, char const *argv[])
         cv::Mat frame_rgb;
         cv::cvtColor(frame, frame_rgb, cv::COLOR_BGR2RGB);
         auto BBoxes = detector.detect(frame_rgb, DETECT_CONF_THRESH, DETECT_NMS_IOU_THRESH);
-        BBoxes = bbox_select(BBoxes, 0); // 只挑出类别为0的目标(Persion)
-        tracker.exec(BBoxes);
-        auto all_tracks = tracker.get_all_tracks();
+        tracker_0.exec(bbox_select(BBoxes, 0)); // 只挑出类别为0的目标(Persion)
+        tracker_2.exec(bbox_select(BBoxes, 2)); // 只挑出类别为2的目标(car)
+        tracker_3.exec(bbox_select(BBoxes, 3)); // 只挑出类别为3的目标(motorcycle)
+        tracker_5.exec(bbox_select(BBoxes, 5)); // 只挑出类别为5的目标(bus)
+        draw_tracks(frame, tracker_0.get_all_tracks(), 1);
+        draw_tracks(frame, tracker_2.get_all_tracks(), 1);
+        draw_tracks(frame, tracker_3.get_all_tracks(), 1);
+        draw_tracks(frame, tracker_5.get_all_tracks(), 1);
+
+        
 
         // 绘制检测框
         // draw_bboxes(frame, BBoxes, detector.names, 0.5f, 1);
-        
-        // 绘制轨迹
-        draw_tracks(frame, all_tracks, 2);
         // 显示帧
         cv::imshow("Frame", frame);
 #ifdef SAVE_VIDEO

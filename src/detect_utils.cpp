@@ -136,7 +136,7 @@ void draw_bboxes(cv::Mat& img,const std::vector<BBox> &bboxes, std::vector<std::
 }
 
 
-void draw_tracks(cv::Mat& img, tracks_t &tracks, int thickness)
+void draw_tracks(cv::Mat& img, const tracks_t &tracks, int thickness)
 {
     for (auto &item : tracks) {
         auto track_id = item.first;

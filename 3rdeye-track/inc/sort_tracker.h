@@ -29,5 +29,7 @@ private:
     uint64_t track_max_len, max_age;
 };
 
+void draw_tracks(cv::Mat& img, const trackmap_t &tracks, int thickness);
+
 #endif
 

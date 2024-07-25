@@ -47,9 +47,6 @@ typedef struct {
 } letterbox_info;
 
 
-typedef std::deque<BBox> track_t;
-typedef std::unordered_map<uint64_t, track_t> tracks_t;
-
 const int color_list[80][3] = {
     //{255, 255, 255}, //bg
     {216,  82,  24}, {236, 176,  31}, {125,  46, 141}, {118, 171,  47}, { 76, 189, 237},
@@ -79,5 +76,5 @@ float bbox_iou(BBox_xyxy box1, BBox_xyxy box2);
 BBox xywh2xyxy(float x, float y, float w, float h);
 void draw_box_in_color(cv::Mat& img, Box box, cv::Scalar color, int thickness);
 void draw_bboxes(cv::Mat& img, const std::vector<BBox> &bboxes, std::vector<std::string> &classes, float text_scale, int thickness);
-void draw_tracks(cv::Mat& img, const tracks_t &tracks, int thickness);
+
 #endif //__DETECT_UTILS_H__

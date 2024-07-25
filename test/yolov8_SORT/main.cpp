@@ -4,6 +4,7 @@
 #include <set>
 #include <cmath>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include "ncnn_detector.h"
 #include "Hungarian.h"
 #include "kalman_filter.h"

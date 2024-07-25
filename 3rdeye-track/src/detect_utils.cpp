@@ -1,4 +1,6 @@
 #include "detect_utils.h"
+#include <iomanip>
+#include <opencv2/imgproc.hpp>
 
 std::string float_to_string(float value, int precision) {
     std::ostringstream oss;

@@ -1,14 +1,11 @@
 #ifndef __DETECT_UTILS_H__
 #define __DETECT_UTILS_H__
 
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
+#include <opencv2/core.hpp>
 #include <vector>
 #include <queue>
 #include <unordered_map>
 #include <cstdint>
-#include <iomanip>
-#include <sstream>
 #include <string>
 
 

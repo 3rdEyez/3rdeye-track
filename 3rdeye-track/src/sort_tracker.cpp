@@ -71,7 +71,7 @@ void sort_tracker::exec(const std::vector<BBox>  &bboxes)
             if(assignment[i] == -1 || \
                 (assignment[i] != -1 && iou_matrix[i][assignment[i]] < 0.1f)) {
                 // 有未匹配的BBox 或者IoU非常低的BBox 则初始化新的 track
-                printf("no match, id=%d\n", i);
+                // printf("no match, id=%d\n", i);
                 track_t track;
                 auto &bbox = bboxes[i];
                 new_track_bboxes.push_back(bbox); // 后续根据new_track_bboxes来创建 track和 kf

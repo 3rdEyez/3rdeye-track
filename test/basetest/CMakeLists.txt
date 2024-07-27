@@ -26,7 +26,7 @@ target_link_libraries(
     basetest PRIVATE 
     ${OpenCV_LIBS}
     ncnn
-    ${CMAKE_SOURCE_DIR}/build/SORTTracker/libSORTTracker.a
+    SORTTracker
 )
 
 # some definitions

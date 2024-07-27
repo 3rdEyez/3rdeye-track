@@ -25,4 +25,7 @@ target_link_libraries(SORTTracker ${OpenCV_LIBS})
 
 install(TARGETS SORTTracker DESTINATION lib)
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/share/tracker.h DESTINATION inc)
+install(FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/share/tracker.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/share/dtype.h
+DESTINATION inc)

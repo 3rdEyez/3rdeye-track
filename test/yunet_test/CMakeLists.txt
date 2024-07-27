@@ -9,11 +9,9 @@ else()
 endif()
 
 find_package(OpenCV REQUIRED)
+set(OpenCV_SHARED OFF)
 
 add_executable(yunet_test
-    ${CMAKE_SOURCE_DIR}/SORTTracker/src/kalman_filter.cpp
-    ${CMAKE_SOURCE_DIR}/SORTTracker/src/sort_tracker.cpp
-    ${CMAKE_SOURCE_DIR}/3rdparty/hungarian-algorithm-cpp/Hungarian.cpp
     ${CMAKE_SOURCE_DIR}/utils/utils.cpp
     ${CMAKE_SOURCE_DIR}/utils/cv_utils.cpp
     yunet_ncnn_detector.cpp
@@ -22,6 +20,7 @@ add_executable(yunet_test
 
 include_directories(
     ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/SORTTracker/share
     ${CMAKE_SOURCE_DIR}/3rdparty
     ${CMAKE_SOURCE_DIR}/SORTTracker/inc
     ${CMAKE_SOURCE_DIR}/3rdparty/hungarian-algorithm-cpp
@@ -31,6 +30,7 @@ target_link_libraries(
     yunet_test PRIVATE 
     ncnn
     ${OpenCV_LIBS}
+    SORTTracker
 )
 
 # some definitions

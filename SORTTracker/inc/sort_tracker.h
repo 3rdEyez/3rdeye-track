@@ -1,9 +1,9 @@
 #ifndef __SORT_TRACKER_H__
 #define __SORT_TRACKER_H__
 
-#include "detect_utils.h"
 #include "kalman_filter.h"
 #include "Hungarian.h"
+#include "../share/dtype.h"
 #include <set>
 #include <unordered_map>
 
@@ -28,8 +28,6 @@ private:
     float sigma_q, sigma_r;
     uint64_t track_max_len, max_age;
 };
-
-void draw_tracks(cv::Mat& img, const trackmap_t &tracks, int thickness);
 
 #endif
 

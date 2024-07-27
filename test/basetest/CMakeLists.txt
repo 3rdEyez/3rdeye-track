@@ -7,18 +7,18 @@ find_package(OpenCV REQUIRED)
 find_package(ncnn REQUIRED)
 
 add_executable(basetest
-${CMAKE_SOURCE_DIR}/SORTTracker/src/detect_utils.cpp
-${CMAKE_SOURCE_DIR}/SORTTracker/src/sort_tracker.cpp
-${CMAKE_SOURCE_DIR}/SORTTracker/src/kalman_filter.cpp
-${CMAKE_SOURCE_DIR}/3rdparty/hungarian-algorithm-cpp/Hungarian.cpp
+${CMAKE_SOURCE_DIR}/utils/utils.cpp
+${CMAKE_SOURCE_DIR}/utils/cv_utils.cpp
 ../ncnn_detector.cpp
 main.cpp
 )
 
 include_directories(
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/3rdparty
     ${CMAKE_SOURCE_DIR}/3rdparty/hungarian-algorithm-cpp
     ${CMAKE_SOURCE_DIR}/SORTTracker/inc
+    ${CMAKE_SOURCE_DIR}/SORTTracker/share
     ..
 )
 
@@ -26,9 +26,10 @@ target_link_libraries(
     basetest PRIVATE 
     ${OpenCV_LIBS}
     ncnn
+    ${CMAKE_SOURCE_DIR}/build/SORTTracker/libSORTTracker.a
 )
 
 # some definitions
-add_definitions(-DNCNN_USE_GPU=0
+add_definitions(-DNCNN_USE_GPU=1
                 -DTEST_IMAGE_FILE="${TEST_IMAGE_FILE}")
 

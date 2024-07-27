@@ -3,7 +3,7 @@
 
 #include <net.h>
 #include <opencv2/core/core.hpp>
-#include "detect_utils.h"
+#include "utils/utils.h"
 
 class ncnn_detector
 {

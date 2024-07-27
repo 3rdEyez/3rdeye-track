@@ -9,6 +9,7 @@
 #include "Hungarian.h"
 #include "kalman_filter.h"
 #include "sort_tracker.h"
+#include "utils/cv_utils.h"
 
 constexpr int MAX_AGE=15;
 constexpr int TRACK_MAX_LEN=15;

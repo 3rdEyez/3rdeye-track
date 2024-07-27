@@ -4,7 +4,8 @@
 
 #include <vector>
 #include "net.h"
-#include "detect_utils.h"
+#include "utils/utils.h"
+#include "utils/cv_utils.h"
 #include "opencv2/core.hpp"
 
 class YunetNCNN

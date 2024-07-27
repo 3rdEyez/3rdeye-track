@@ -11,15 +11,17 @@ endif()
 find_package(OpenCV REQUIRED)
 
 add_executable(yolov8_sort
-${CMAKE_SOURCE_DIR}/SORTTracker/src/detect_utils.cpp
 ${CMAKE_SOURCE_DIR}/SORTTracker/src/kalman_filter.cpp
 ${CMAKE_SOURCE_DIR}/SORTTracker/src/sort_tracker.cpp
 ${CMAKE_SOURCE_DIR}/3rdparty/hungarian-algorithm-cpp/Hungarian.cpp
+${CMAKE_SOURCE_DIR}/utils/utils.cpp
+${CMAKE_SOURCE_DIR}/utils/cv_utils.cpp
 ../ncnn_detector.cpp
 main.cpp
 )
 
 include_directories(
+    ${CMAKE_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/SORTTracker/inc
     ${CMAKE_SOURCE_DIR}/3rdparty
     ${CMAKE_SOURCE_DIR}/3rdparty/hungarian-algorithm-cpp

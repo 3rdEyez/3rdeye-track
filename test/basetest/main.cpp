@@ -4,7 +4,8 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include "ncnn_detector.h"
-#include "sort_tracker.h"
+#include "tracker.h"
+#include "utils/cv_utils.h"
 
 
 int main(int argc, char const *argv[])
@@ -19,7 +20,7 @@ int main(int argc, char const *argv[])
     );
     cv::Mat frame;
     trackmap_t all_tracks;
-    sort_tracker tracker(0.8f, 2.0f, 20, 20);
+    int trackerid = tracker_init(0.8f, 2.0f, 20, 20);
     
     int i = 0;
     while (true)
@@ -32,9 +33,8 @@ int main(int argc, char const *argv[])
         bboxes = detector.detect(frame, 0.2, 0.5);
         auto end = std::chrono::steady_clock::now();
         printf("frame %d, %d bboxes ; fps = %f\n", i, (int)bboxes.size(), 1.0 / std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count());
-        // draw_bboxes(frame, bboxes, detector.names, 0.8, 1);
-        tracker.exec(bbox_select(bboxes, 2));
-        all_tracks = tracker.get_all_tracks();
+        tracker_update(trackerid, bbox_select(bboxes, 2));
+        all_tracks = tracker_get_tracks(trackerid);
         draw_tracks(frame, all_tracks, 1);
         cv::imwrite(cv::format(out_frame_path_fmt, i), frame);
     }

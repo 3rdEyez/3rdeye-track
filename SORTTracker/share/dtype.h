@@ -3,6 +3,7 @@
 
 #include <deque>
 #include <unordered_map>
+#include <cstdint>
 
 typedef struct {
     float x;

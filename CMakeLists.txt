@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 
 project(3rdeye-track)
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 # prepare test files
 set(TEST_IMAGE_FILE "${CMAKE_SOURCE_DIR}/media/bus.jpg")
 set(TEST_VIDEO_FILE "${CMAKE_SOURCE_DIR}/media/testvideo.mp4")

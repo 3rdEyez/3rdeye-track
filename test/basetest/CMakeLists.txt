@@ -30,6 +30,6 @@ target_link_libraries(
 )
 
 # some definitions
-add_definitions(-DNCNN_USE_GPU=1
+add_definitions(-DNCNN_USE_GPU=0
                 -DTEST_IMAGE_FILE="${TEST_IMAGE_FILE}")
 

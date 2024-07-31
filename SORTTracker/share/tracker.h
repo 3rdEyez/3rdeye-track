@@ -1,7 +1,7 @@
 #ifndef __SHARE_TRACKER_H__
 #define __SHARE_TRACKER_H__
 
-#include "./dtype.h"
+#include "dtype.h"
 #include <vector>
 
 int tracker_init(float sigma_q, float sigma_r, int track_max_len, int max_age);

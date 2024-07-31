@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(ncnn_predict)
+project(yunet_demo)
 
 find_package(ncnn REQUIRED)
 if(NOT TARGET ncnn)
@@ -9,23 +9,18 @@ else()
 endif()
 
 find_package(OpenCV REQUIRED)
+set(OpenCV_SHARED OFF)
 
-add_executable(ncnn_predict
-${CMAKE_SOURCE_DIR}/utils/utils.cpp
-${CMAKE_SOURCE_DIR}/utils/cv_utils.cpp
-../ncnn_detector.cpp
-main.cpp
-)
-
-include_directories(
-    ${CMAKE_SOURCE_DIR}
-    ..
+add_executable(yunet_demo
+    yunet_ncnn_detector.cpp
+    main.cpp
 )
 
 target_link_libraries(
-    ncnn_predict PRIVATE 
+    yunet_demo PRIVATE 
     ncnn
     ${OpenCV_LIBS}
+    SORTTracker
 )
 
 # some definitions
@@ -33,3 +28,5 @@ add_definitions(-DNCNN_USE_GPU=0
                 -DYOLOV8_NCNN_MODEL="${CMAKE_SOURCE_DIR}/models/ncnn/yolov8n_ncnn_model"
                 -DTEST_IMAGE_FILE="${TEST_IMAGE_FILE}")
 
+install(TARGETS yunet_demo RUNTIME DESTINATION bin)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/models/ncnn/yunet_n_320_320_ncnn_model DESTINATION models)

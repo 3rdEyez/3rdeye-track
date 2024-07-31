@@ -1,5 +1,5 @@
-#include "./tracker.h"
-#include  "../inc/sort_tracker.h"
+#include "tracker.h"
+#include  "sort_tracker.h"
 
 using namespace std;
 static std::unordered_map<int, sort_tracker*> trackers;

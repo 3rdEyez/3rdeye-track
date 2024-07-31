@@ -1,7 +1,7 @@
-#ifndef __3RDEYE_TRACK_UTILS_H__
-#define __3RDEYE_TRACK_UTILS_H__
+#ifndef __3RDEYE_TRACK_DET_UTILS_H__
+#define __3RDEYE_TRACK_DET_UTILS_H__
 
-#include "../SORTTracker/share/dtype.h"
+#include "dtype.h"
 #include <vector>
 #include <algorithm>
 
@@ -31,4 +31,4 @@ const int color_list[80][3] = {
     {182, 182, 182}, {218, 218, 218}, {  0, 113, 188}, { 80, 182, 188}, {127, 127,   0},
 };
 
-#endif //__3RDEYE_TRACK_UTILS_H__
+#endif //__3RDEYE_TRACK_DET_UTILS_H__

@@ -1,6 +1,6 @@
 #include "ncnn_detector.h"
-#include "utils/utils.h"
-#include "utils/cv_utils.h"
+#include "det_utils.h"
+#include "cv_utils.h"
 
 bool ncnn_detector::hasGPU = false;
 

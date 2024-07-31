@@ -6,10 +6,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include "ncnn_detector.h"
-#include "Hungarian.h"
-#include "kalman_filter.h"
-#include "sort_tracker.h"
-#include "utils/cv_utils.h"
+#include "tracker.h"
+#include "det_utils.h"
+#include "cv_utils.h"
 
 constexpr int MAX_AGE=15;
 constexpr int TRACK_MAX_LEN=15;
@@ -27,10 +26,6 @@ int main(int argc, char const *argv[])
 {
     cv::Mat frame;
     cv::VideoCapture cap(TEST_VIDEO_FILE);
-    std::unordered_map<uint64_t, KalmanFilter*> kf_map; // 存储每个track的KalmanFilter
-    std::unordered_map<uint64_t, uint64_t> track_unmatched_cnt_map; // 存储每个track的未匹配帧数
-    std::vector<BBox> new_track_bboxes; // 存储bbox, 用于创建新轨迹
-    uint64_t id_num = 0;
     uint64_t frame_id = 0;
 
     ncnn_detector detector(
@@ -39,10 +34,10 @@ int main(int argc, char const *argv[])
         true
     );
 
-    sort_tracker tracker_0(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
-    sort_tracker tracker_2(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
-    sort_tracker tracker_3(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
-    sort_tracker tracker_5(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
+    int tracker_0 = tracker_init(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
+    int tracker_2 = tracker_init(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
+    int tracker_3 = tracker_init(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
+    int tracker_5 = tracker_init(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
     
     if(!cap.isOpened()) {
         std::cerr << "Error: Could not open camera" << std::endl;
@@ -66,17 +61,15 @@ int main(int argc, char const *argv[])
         cv::Mat frame_rgb;
         cv::cvtColor(frame, frame_rgb, cv::COLOR_BGR2RGB);
         auto BBoxes = detector.detect(frame_rgb, DETECT_CONF_THRESH, DETECT_NMS_IOU_THRESH);
-        tracker_0.exec(bbox_select(BBoxes, 0)); // 只挑出类别为0的目标(Persion)
-        tracker_2.exec(bbox_select(BBoxes, 2)); // 只挑出类别为2的目标(car)
-        tracker_3.exec(bbox_select(BBoxes, 3)); // 只挑出类别为3的目标(motorcycle)
-        tracker_5.exec(bbox_select(BBoxes, 5)); // 只挑出类别为5的目标(bus)
-        draw_tracks(frame, tracker_0.get_all_tracks(), 1);
-        draw_tracks(frame, tracker_2.get_all_tracks(), 1);
-        draw_tracks(frame, tracker_3.get_all_tracks(), 1);
-        draw_tracks(frame, tracker_5.get_all_tracks(), 1);
-
+        tracker_update(tracker_0, bbox_select(BBoxes, 0)); // 只挑出类别为0的目标(Persion)
+        tracker_update(tracker_2, bbox_select(BBoxes, 2)); // 只挑出类别为2的目标(car)
+        tracker_update(tracker_3, bbox_select(BBoxes, 3)); // 只挑出类别为3的目标(motorcycle)
+        tracker_update(tracker_5, bbox_select(BBoxes, 5)); // 只挑出类别为5的目标(bus)
         
-
+        draw_tracks(frame, tracker_get_tracks(tracker_0), 1);
+        draw_tracks(frame, tracker_get_tracks(tracker_2), 1);
+        draw_tracks(frame, tracker_get_tracks(tracker_3), 1);
+        draw_tracks(frame, tracker_get_tracks(tracker_5), 1);
         // 绘制检测框
         // draw_bboxes(frame, BBoxes, detector.names, 0.5f, 1);
         // 显示帧
@@ -94,5 +87,9 @@ int main(int argc, char const *argv[])
 #ifdef SAVE_VIDEO
     videoWriter.release();
 #endif
+    tracker_destroy(tracker_0);
+    tracker_destroy(tracker_2);
+    tracker_destroy(tracker_3);
+    tracker_destroy(tracker_5);
     return 0;
 }

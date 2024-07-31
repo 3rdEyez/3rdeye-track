@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(yunet_test)
+project(ncnn_predict)
 
 find_package(ncnn REQUIRED)
 if(NOT TARGET ncnn)
@@ -9,25 +9,18 @@ else()
 endif()
 
 find_package(OpenCV REQUIRED)
-set(OpenCV_SHARED OFF)
 
-add_executable(yunet_test
-    ${CMAKE_SOURCE_DIR}/utils/utils.cpp
-    ${CMAKE_SOURCE_DIR}/utils/cv_utils.cpp
-    yunet_ncnn_detector.cpp
-    main.cpp
+add_executable(ncnn_predict
+ncnn_detector.cpp
+main.cpp
 )
 
 include_directories(
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_SOURCE_DIR}/SORTTracker/share
-    ${CMAKE_SOURCE_DIR}/3rdparty
-    ${CMAKE_SOURCE_DIR}/SORTTracker/inc
-    ${CMAKE_SOURCE_DIR}/3rdparty/hungarian-algorithm-cpp
 )
 
 target_link_libraries(
-    yunet_test PRIVATE 
+    ncnn_predict PRIVATE 
     ncnn
     ${OpenCV_LIBS}
     SORTTracker
@@ -38,5 +31,3 @@ add_definitions(-DNCNN_USE_GPU=0
                 -DYOLOV8_NCNN_MODEL="${CMAKE_SOURCE_DIR}/models/ncnn/yolov8n_ncnn_model"
                 -DTEST_IMAGE_FILE="${TEST_IMAGE_FILE}")
 
-install(TARGETS yunet_test RUNTIME DESTINATION bin)
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/models/ncnn/yunet_n_320_320_ncnn_model DESTINATION models)

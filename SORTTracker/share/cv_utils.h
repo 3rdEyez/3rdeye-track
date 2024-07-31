@@ -1,7 +1,7 @@
 #ifndef __3RDEYE_TRACK_CV_UTILS_H__
 #define __3RDEYE_TRACK_CV_UTILS_H__
 
-#include "SORTTracker/share/dtype.h"
+#include "dtype.h"
 #include <opencv2/core.hpp>
 
 void letterbox(cv::Mat& img, int new_width, int new_height, letterbox_info& info);

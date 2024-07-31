@@ -1,7 +1,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include "utils/utils.h"
+#include "det_utils.h"
 #include "ncnn_detector.h"
 
 int main(int argc, char const *argv[])

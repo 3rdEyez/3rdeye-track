@@ -1,5 +1,5 @@
-#include "./cv_utils.h"
-#include "./utils.h"
+#include "cv_utils.h"
+#include "det_utils.h"
 #include <iomanip>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>

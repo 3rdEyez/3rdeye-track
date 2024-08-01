@@ -25,6 +25,8 @@ target_link_libraries(
 
 # some definitions
 add_definitions(-DNCNN_USE_GPU=0
+                -DSAVE_VIDEO=1
+                -DIMSHOW=1
                 -DYOLOV8_NCNN_MODEL="${CMAKE_SOURCE_DIR}/models/ncnn/yolov8n_ncnn_model"
                 -DTEST_IMAGE_FILE="${TEST_IMAGE_FILE}")
 

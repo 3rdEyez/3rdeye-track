@@ -34,9 +34,10 @@ typedef struct {
 class YunetRKNN
 {
 public:
-    YunetRKNN(const char* rknn_model);
+    YunetRKNN(const char *rknn_model);
     ~YunetRKNN();
-    rknn_app_context_t *ctx;
+    rknn_app_context_t app_ctx;
+    rknn_context rknn_ctx;
     int imgsz[2] = {320, 320};
     std::vector<BBox> detect(const cv::Mat &img, float score_threshold, float nms_threshold);
 private:

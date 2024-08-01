@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.18)
-project(rv1103_rknn_inference_demo)
+
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_COMPILER /opt/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-gcc)
+set(CMAKE_CXX_COMPILER /opt/arm-rockchip830-linux-uclibcgnueabihf/bin/arm-rockchip830-linux-uclibcgnueabihf-g++)
+
+project(rv1103_rknn_inference_demo)
+
 
 ##############################
 ### setup rknpu2 for rv1103
@@ -32,6 +37,22 @@ endif()
 
 file (ARCHIVE_EXTRACT INPUT ${librga_armhf_uclibc_archive} DESTINATION ${librga_armhf_uclibc_extract_path})
 
+################################################
+### setup opencv-mobile for rv1103
+### see https://github.com/nihui/opencv-mobile
+################################################
+if (NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/opencv-mobile)
+    file(DOWNLOAD https://cdn.fyrabh.top/repo_resurces/3rdeye_track/libs/opencv-mobile-4.10.0-luckfox-pico.zip
+        ${CMAKE_CURRENT_BINARY_DIR}/opencv-mobile.zip SHOW_PROGRESS)
+    message(STATUS "Downloaded opencv-mobile.zip")
+    file(ARCHIVE_EXTRACT INPUT ${CMAKE_CURRENT_BINARY_DIR}/opencv-mobile.zip DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+    file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/opencv-mobile-4.10.0-luckfox-pico ${CMAKE_CURRENT_BINARY_DIR}/opencv-mobile)
+endif()
+set(OpenCV_DIR ${CMAKE_CURRENT_BINARY_DIR}/opencv-mobile/lib/cmake/opencv4)
+find_package(OpenCV REQUIRED)
+
+# include SORTTracker
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../SORTTracker SORTTracker.lib)
 
 include_directories(
     ${rknn2lib_armhf_uclibc_extract_path}/rknpu2/include

@@ -11,7 +11,7 @@ if(NOT EXISTS ${CMAKE_SOURCE_DIR}/models)
     file(DOWNLOAD  https://cdn.fyrabh.top/repo_resurces/3rdeye_track/model/models.zip
     ${CMAKE_CURRENT_BINARY_DIR}/models.zip STATUS status)
     file(ARCHIVE_EXTRACT INPUT ${CMAKE_CURRENT_BINARY_DIR}/models.zip DESTINATION
-    ${CMAKE_SOURCE_DIR}/models)
+    ${CMAKE_SOURCE_DIR})
 endif()
 
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/media)
@@ -19,7 +19,7 @@ if(NOT EXISTS ${CMAKE_SOURCE_DIR}/media)
     file(DOWNLOAD https://cdn.fyrabh.top/repo_resurces/3rdeye_track/model/media.zip
         ${CMAKE_CURRENT_BINARY_DIR}/media.zip STATUS status)
     file(ARCHIVE_EXTRACT INPUT ${CMAKE_CURRENT_BINARY_DIR}/media.zip DESTINATION
-    ${CMAKE_SOURCE_DIR}/media)
+    ${CMAKE_SOURCE_DIR})
 endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/SORTTracker)

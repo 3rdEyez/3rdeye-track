@@ -39,9 +39,13 @@ public:
     rknn_app_context_t app_ctx;
     int imgsz[2] = {320, 320};
     std::vector<BBox> detect(const cv::Mat &img, float score_threshold, float nms_threshold);
+    std::vector<std::string> names{"person"};
 private:
-    void preprocess(const cv::Mat &img, cv::Mat &in, letterbox_info &info);
+    void preprocess(cv::Mat &img, cv::Mat &in, letterbox_info &info);
 };
 
+typedef std::vector<float> Vec1f;
+typedef std::vector<Vec1f> Vec2f;
+typedef std::vector<Vec2f> Vec3f;
 
 #endif // __YUNET_RKNN_DETECTOR_H__

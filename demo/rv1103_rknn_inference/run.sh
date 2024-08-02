@@ -12,4 +12,6 @@ make install
 rm install/lib -r
 rm install/inc -r
 sshpass -p luckfox scp -r install root@192.168.1.11:~
-# sshpass -p luckfox ssh root@192.168.1.11 "cd /root/install; ./rv1103_rknn_inference_demo"
+sshpass -p luckfox ssh root@192.168.1.11 "cd /root/install; ./rv1103_rknn_inference_demo"
+sshpass -p luckfox scp root@192.168.1.11:/root/install/result.jpg .
+

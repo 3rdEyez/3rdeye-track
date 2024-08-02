@@ -4,6 +4,58 @@
 #include "im2d.h"
 #include "RgaUtils.h"
 #include "dma_alloc.h"
+#include "det_utils.h"
+#include <iostream>
+
+static float deqnt_affine_to_f32(int8_t qnt, int32_t zp, float scale) { return ((float)qnt - (float)zp) * scale; }
+static float deqnt_affine_u8_to_f32(uint8_t qnt, int32_t zp, float scale) { return ((float)qnt - (float)zp) * scale; }
+
+static std::vector<Box> box_decode(const std::vector<Box> &boxes, Vec3f grid, int stride)
+{
+    size_t height = grid.size();
+    size_t width = grid[0].size();
+    std::vector<Box> out;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            float x = boxes[i * width + j].x * stride + grid[i][j][0];
+            float y = boxes[i * width + j].y * stride + grid[i][j][1];
+            float w = expf(boxes[i * width + j].w) * stride;
+            float h = expf(boxes[i * width + j].h) * stride;
+            out.push_back(Box{x, y, w, h});
+        }
+    }
+    return out;
+}
+
+static std::vector<std::vector<float>> kps_decode(const std::vector<std::vector<float>> &kps, Vec3f grid, int stride)
+{
+    size_t height = grid.size();
+    size_t width = grid[0].size();
+    std::vector<std::vector<float>> out;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            float x[5], y[5];
+            for (int k = 0; k < 5; k++) {
+                x[k] = kps[i * width + j][k * 2] * stride + grid[i][j][0];
+                y[k] = kps[i * width + j][k * 2 + 1] * stride + grid[i][j][1];
+            }
+            out.push_back({x[0], y[0], x[1], y[1], x[2], y[2], x[3], y[3], x[4], y[4]});
+        }
+    }
+    return out;
+}
+
+// 返回二维网格，辅助bbox解码。因为每个网格单元包含两个数(x, y)，所以最后使用Vec3f类型返回值
+Vec3f meshgrid(int height, int width, int stride)
+{
+    Vec3f g(height, Vec2f(width));
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            g[i][j] = Vec1f{(float)j * stride, (float)i * stride};
+        }
+    }
+    return g;
+}
 
 static void dump_tensor_attr(rknn_tensor_attr *attr)
 {
@@ -165,52 +217,161 @@ YunetRKNN::~YunetRKNN()
     }
 }
 
-void YunetRKNN::preprocess(const cv::Mat &img, cv::Mat &in, letterbox_info &info)
+
+static int cvbgr888_rga_resize(cv::Mat &cv_src, cv::Mat &cv_dst, cv::Size dst_size)
 {
+    int ret = 0;
+    int src_width = cv_src.cols;
+    int src_height = cv_src.rows;
+    int dst_width = dst_size.width;
+    int dst_height = dst_size.height;
+    int format = RK_FORMAT_BGR_888;
+    rga_buffer_t src_rga_buf, dst_rga_buf;
+    char *src_buf = NULL, *dst_buf = NULL;
+    rga_buffer_handle_t src_handle, dst_handle;
+    int src_buf_size, dst_buf_size;
+    int src_fd = 0, dst_fd = 0;
+    cv_dst.release();
+    cv_dst = cv::Mat(dst_height, dst_width, CV_8UC3);
+
+    memset(&src_rga_buf, 0, sizeof(rga_buffer_t));
+    memset(&dst_rga_buf, 0, sizeof(rga_buffer_t));
+    src_buf_size = src_width * src_height * get_bpp_from_format(format);
+    dst_buf_size = dst_width * dst_height * get_bpp_from_format(format);
+    ret = dma_buf_alloc(RV1106_CMA_HEAP_PATH, src_buf_size, &src_fd, (void **)&src_buf);
+    if (ret) {
+        std::cout << "src_buf_size dma_buf_alloc failed" << std::endl;
+        goto out;    
+    }
+    ret = dma_buf_alloc(RV1106_CMA_HEAP_PATH, dst_buf_size, &dst_fd, (void **)&dst_buf);
+    if (ret) {
+        std::cout << "dst_buf_size dma_buf_alloc failed" << std::endl;
+        goto out;    
+    }
+    memcpy(src_buf, cv_src.data, src_buf_size);
+    dma_sync_cpu_to_device(src_fd);
+    src_handle = importbuffer_fd(src_fd, src_buf_size);
+    if (src_handle == 0) {
+        std::cout << "importbuffer_fd failed" << std::endl;
+        goto out;    
+    }
+    src_rga_buf = wrapbuffer_handle(src_handle, src_width, src_height, format);
+
+    dst_handle = importbuffer_fd(dst_fd, dst_buf_size);
+    if (dst_handle == 0) {
+        std::cout << "importbuffer_fd failed" << std::endl;
+        goto out;    
+    }
+    dst_rga_buf = wrapbuffer_handle(dst_handle, dst_width, dst_height, format);
+    ret = imcheck(src_rga_buf, dst_rga_buf, {}, {});
+    if (IM_STATUS_NOERROR != ret) {
+        printf("%d, check error! %s", __LINE__, imStrError((IM_STATUS)ret));
+        return -1;
+    }
+    ret = imresize(src_rga_buf, dst_rga_buf);
+    if (ret == IM_STATUS_SUCCESS) {
+        // printf("%s running success!\n");
+    } else {
+        printf("%s running failed\n");
+        return -1;
+    }
+
+    memcpy(cv_dst.data, dst_buf, dst_buf_size);
+    dma_sync_device_to_cpu(dst_fd);
+
+    releasebuffer_handle(src_handle);
+    releasebuffer_handle(dst_handle);
+    dma_buf_free(src_buf_size, &src_fd, src_buf);
+    dma_buf_free(dst_buf_size, &dst_fd, dst_buf);
+
+    return 0;
+out:
+    if (src_buf != NULL)
+        dma_buf_free(src_buf_size, &src_fd, src_buf);
+    if (dst_buf != NULL)
+        dma_buf_free(dst_buf_size, &dst_fd, dst_buf);
+    return -1;
+}
+
+static void letterbox_rga(cv::Mat& img, int new_width, int new_height, letterbox_info& info)
+{
+    int width = img.cols;
+    int height = img.rows;
+    int & offset_x = info.offset_x, & offset_y = info.offset_y;
+    float & scale = info.scale;
+    scale = std::min((float)new_width / (float)width, (float)new_height / (float)height);
+    int new_unscaled_width = (int)(scale * (float)width);
+    int new_unscaled_height = (int)(scale * (float)height);
+    offset_x = (new_width - new_unscaled_width) / 2;
+    offset_y = (new_height - new_unscaled_height) / 2;
     cv::Mat img_copy = img.clone();
-    letterbox(img_copy, imgsz[0], imgsz[1], info);
-    in = img_copy.clone();
+    cvbgr888_rga_resize(img, img_copy, cv::Size(new_unscaled_width, new_unscaled_height));
+    img = img_copy;
+    cv::copyMakeBorder(img, img, offset_y, offset_y, offset_x, offset_x, cv::BORDER_CONSTANT, cv::Scalar(114, 114, 114));
+}
+
+
+void YunetRKNN::preprocess(cv::Mat &img, cv::Mat &in, letterbox_info &info)
+{
+    letterbox(img, imgsz[0], imgsz[1], info);
 }
 
 
 std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, float nms_threshold)
 {
-    std::vector<BBox> bboxes;
-    int ret = 0;
+    std::vector<BBox> valid_result;
+    std::vector<float> scores_keep;
+    std::vector<Box> boxes, boxes_keep;
+    std::vector<std::vector<float>> kps, kps_keep;
+    Vec3f grid_40x40 = meshgrid(40, 40, 8);
+    Vec3f grid_20x20 = meshgrid(20, 20, 16);
+    Vec3f grid_10x10 = meshgrid(10, 10, 32);
 
+    int ret = 0;
     // set input data. dst_rga_buf is for letterox output, and inputmem_rga_buf is for rknn input
     // you should copy dst_rga_buf to inputmem_rga_buf
-    cv::Mat img_dst;
+    rknn_tensor_mem **_outputs = (rknn_tensor_mem **)app_ctx.output_mems;
+    cv::Mat img_dst = img.clone();
     letterbox_info info;
-    preprocess(img, img_dst, info);
+    preprocess(img_dst, img_dst, info);
+    // print info
+    printf("letterbox info: x=%d, y=%d, s=%f\n", info.offset_x, info.offset_y, info.scale);
     int dst_height = img_dst.rows;
     int dst_width = img_dst.cols;
     int format = RK_FORMAT_BGR_888;
     rga_buffer_t dst_rga_buf, inputmem_rga_buf;
     char *dst_buf;
     int dst_fd = 0;
-    rga_buffer_handle_t dst_handle, inputmem_handle;
+    rga_buffer_handle_t dst_handle = 0, inputmem_handle;
     int dst_buf_size;
-    
+    std::vector<float> out_tensor_scale_list;
+    std::vector<int> out_tensor_zero_point_list;
+
+
+    // alloc dma buffer for dst_rga_buf
     dst_buf_size = dst_height * dst_width * get_bpp_from_format(format);
     ret = dma_buf_alloc(RV1106_CMA_HEAP_PATH, dst_buf_size, &dst_fd, (void **)&dst_buf);
     if (ret) {
         printf("dst_buf_size dma_buf_alloc failed\n");
-        return bboxes;
+        goto out;
     }
+    // copy cv::Mat to dma buffer
     memcpy(dst_buf, img_dst.data, dst_buf_size);
+    
     dma_sync_cpu_to_device(dst_fd);
+
+    // create rga buffer_handle
     dst_handle = importbuffer_fd(dst_fd, dst_buf_size);
     if (dst_handle == 0) {
         printf("importbuffer_fd failed\n");
-        return bboxes;
+        goto out;
     }
     dst_rga_buf = wrapbuffer_handle(dst_handle, dst_width, dst_height, format);
 
     inputmem_handle = importbuffer_fd(app_ctx.input_mems[0]->fd, dst_buf_size);
     if (inputmem_handle == 0) {
         printf("importbuffer_fd failed\n");
-        return bboxes;
+        goto out;
     }
     inputmem_rga_buf = wrapbuffer_handle(inputmem_handle, dst_width, dst_height, format);
 
@@ -218,28 +379,158 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
     ret = imcheck(dst_rga_buf, inputmem_rga_buf, {}, {});
     if (IM_STATUS_NOERROR != ret) {
         printf("%d, check error! %s", __LINE__, imStrError((IM_STATUS)ret));
-        return bboxes;
+        goto out;
     }
+
+    /* set up rknn input buffer */
     ret = imcopy(dst_rga_buf, inputmem_rga_buf);
     if (ret == IM_STATUS_SUCCESS) {
         printf("%s running success!\n");
     } else {
         printf("%s running failed\n");
-        return bboxes;
+        goto out;
     }
     /* rknn run */
     ret = rknn_run(app_ctx.rknn_ctx, nullptr);
 
     if (ret < 0) {
         printf("run error %d\n", ret);
-        return bboxes;
+        goto out;
     }
 
     // TODO: get output data
-    rknn_tensor_mem **_outputs = (rknn_tensor_mem **)app_ctx.output_mems;
-    // print app_ctx.output_mems[0][0~1000]
-    for (int i = 0; i < 1600; i++) {
-        printf("0x%X ", ((uint8_t *)_outputs[3]->virt_addr)[i]);
+    /* get zero points and scales */
+    for (int i = 0; i < app_ctx.io_num.n_output; i++) {
+        out_tensor_scale_list.push_back(app_ctx.output_attrs[i].scale);
+        out_tensor_zero_point_list.push_back(app_ctx.output_attrs[i].zp);
     }
-    return bboxes;
+    
+    // box_stride_8 keypoints_stride_8 meshgrid_40X40
+    for (int i = 0; i < 1600; i++) {
+        int8_t *pb = (int8_t *)_outputs[6]->virt_addr;
+        int8_t *pk = (int8_t *)_outputs[9]->virt_addr;
+        int8_t *box_row = pb + i * 4;
+        int8_t *kps_row = pk + i * 10;
+        boxes.push_back({
+            (float)(box_row[0] - out_tensor_zero_point_list[6]) * out_tensor_scale_list[6],
+            (float)(box_row[1] - out_tensor_zero_point_list[6]) * out_tensor_scale_list[6],
+            (float)(box_row[2] - out_tensor_zero_point_list[6]) * out_tensor_scale_list[6],
+            (float)(box_row[3] - out_tensor_zero_point_list[6]) * out_tensor_scale_list[6]
+        });
+        kps.push_back({
+            (float)(kps_row[0] - out_tensor_zero_point_list[9]) * out_tensor_scale_list[9],
+            (float)(kps_row[1] - out_tensor_zero_point_list[9]) * out_tensor_scale_list[9],
+            (float)(kps_row[2] - out_tensor_zero_point_list[9]) * out_tensor_scale_list[9],
+            (float)(kps_row[3] - out_tensor_zero_point_list[9]) * out_tensor_scale_list[9]
+        });
+    }
+    boxes = box_decode(boxes, grid_40x40, 8);
+    kps = kps_decode(kps, grid_40x40, 8);
+    for (int i = 0; i < 1600; i++) {
+        float score = deqnt_affine_to_f32(*((int8_t *)_outputs[0]->virt_addr + i), out_tensor_zero_point_list[0], out_tensor_scale_list[0]);
+        score = score * deqnt_affine_to_f32(*((int8_t *)_outputs[3]->virt_addr + i), out_tensor_zero_point_list[3], out_tensor_scale_list[3]);
+        score = sqrtf(score);
+        if (score > score_threshold) { 
+            scores_keep.push_back(score);
+            boxes_keep.push_back( boxes[i]);
+            kps_keep.push_back(kps[i]);
+        } 
+    }
+    boxes.clear();
+    kps.clear();
+    
+    
+    // box_stride_16 keypoints_stride_16 meshgrid_20X20
+    for (int i = 0; i < 400; i++) {
+        int8_t *pb = (int8_t *)_outputs[7]->virt_addr;
+        int8_t *pk = (int8_t *)_outputs[10]->virt_addr;
+        int8_t *box_row = pb + i * 4;
+        int8_t *kps_row = pk + i * 10;
+        boxes.push_back({
+            (float)(box_row[0] - out_tensor_zero_point_list[7]) * out_tensor_scale_list[7],
+            (float)(box_row[1] - out_tensor_zero_point_list[7]) * out_tensor_scale_list[7],
+            (float)(box_row[2] - out_tensor_zero_point_list[7]) * out_tensor_scale_list[7],
+            (float)(box_row[3] - out_tensor_zero_point_list[7]) * out_tensor_scale_list[7]
+        });
+        kps.push_back({
+            (float)(kps_row[0] - out_tensor_zero_point_list[10]) * out_tensor_scale_list[10],
+            (float)(kps_row[1] - out_tensor_zero_point_list[10]) * out_tensor_scale_list[10],
+            (float)(kps_row[2] - out_tensor_zero_point_list[10]) * out_tensor_scale_list[10],
+            (float)(kps_row[3] - out_tensor_zero_point_list[10]) * out_tensor_scale_list[10]
+        });
+    }
+    boxes = box_decode(boxes, grid_20x20, 16);
+    kps = kps_decode(kps, grid_20x20, 16);
+    for (int i = 0; i < 400; i++) {
+        float score = deqnt_affine_to_f32(*((int8_t *)_outputs[1]->virt_addr + i), out_tensor_zero_point_list[1], out_tensor_scale_list[1]);
+        score = score * deqnt_affine_to_f32(*((int8_t *)_outputs[4]->virt_addr + i), out_tensor_zero_point_list[4], out_tensor_scale_list[4]);
+        score = sqrtf(score);
+        if (score > score_threshold) {
+            scores_keep.push_back(score);
+            boxes_keep.push_back(boxes[i]);
+            kps_keep.push_back(kps[i]);
+        }
+    }
+    boxes.clear();
+    kps.clear();
+
+    // box_stride_32 keypoints_stride_32 meshgrid_10X10 
+    for (int i = 0; i < 100; i++) {
+        int8_t *pb = (int8_t *)_outputs[8]->virt_addr;
+        int8_t *pk = (int8_t *)_outputs[11]->virt_addr;
+        int8_t *box_row = pb + i * 4;
+        int8_t *kps_row = pk + i * 10;
+        boxes.push_back({
+            (float)(box_row[0] - out_tensor_zero_point_list[8]) * out_tensor_scale_list[8],
+            (float)(box_row[1] - out_tensor_zero_point_list[8]) * out_tensor_scale_list[8],
+            (float)(box_row[2] - out_tensor_zero_point_list[8]) * out_tensor_scale_list[8],
+            (float)(box_row[3] - out_tensor_zero_point_list[8]) * out_tensor_scale_list[8]
+        });
+        kps.push_back({
+            (float)(kps_row[0] - out_tensor_zero_point_list[11]) * out_tensor_scale_list[11],
+            (float)(kps_row[1] - out_tensor_zero_point_list[11]) * out_tensor_scale_list[11],
+            (float)(kps_row[2] - out_tensor_zero_point_list[11]) * out_tensor_scale_list[11],
+            (float)(kps_row[3] - out_tensor_zero_point_list[11]) * out_tensor_scale_list[11]
+        });
+    }
+    boxes = box_decode(boxes, grid_10x10, 32);
+    kps = kps_decode(kps, grid_10x10, 32);
+    for (int i = 0; i < 100; i++) {
+        float score = deqnt_affine_to_f32(*((int8_t *)_outputs[2]->virt_addr + i), out_tensor_zero_point_list[2], out_tensor_scale_list[2]);
+        score = score * deqnt_affine_to_f32(*((int8_t *)_outputs[5]->virt_addr + i), out_tensor_zero_point_list[5], out_tensor_scale_list[5]);
+        score = sqrtf(score);
+        if (score > score_threshold) {
+            scores_keep.push_back(score);
+            boxes_keep.push_back(boxes[i]);
+            kps_keep.push_back(kps[i]);
+        }
+    }
+    
+    for (int i = 0; i < boxes_keep.size(); i++) {
+        auto &p = boxes_keep[i];
+        valid_result.push_back({p.x, p.y, p.w, p.h, scores_keep[i], 0});
+    }
+
+    for (auto &box : valid_result) {
+        box.x = (box.x - info.offset_x) / (info.scale + 0.001f);
+        box.y = (box.y - info.offset_y) / (info.scale + 0.001f);
+        box.w = box.w / (info.scale + 0.001f);
+        box.h = box.h / (info.scale + 0.001f);
+    }
+
+    valid_result = nms(valid_result, nms_threshold);
+    for (auto &box : valid_result) {
+        printf("box: %f %f %f %f %f\n", box.x, box.y, box.w, box.h, box.score);
+    }
+
+out:
+    if (dst_handle) {
+        releasebuffer_handle(dst_handle);
+    }
+    if (releasebuffer_handle(inputmem_handle)) {
+        releasebuffer_handle(inputmem_handle);
+    }
+    if (dst_buf != NULL)
+        dma_buf_free(dst_buf_size, &dst_fd, dst_buf);
+    return valid_result;
 }

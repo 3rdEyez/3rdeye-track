@@ -110,7 +110,7 @@ std::vector<BBox> YunetNCNN::detect(const cv::Mat &img, float score_threshold, f
         float score = sqrtf(outs[0].row(i)[0] * outs[3].row(i)[0]);
         if (score > score_threshold) { 
             scores_keep.push_back(score);
-            boxes_keep.push_back( boxes[i]);
+            boxes_keep.push_back(boxes[i]);
             kps_keep.push_back(kps[i]);
         } 
     }

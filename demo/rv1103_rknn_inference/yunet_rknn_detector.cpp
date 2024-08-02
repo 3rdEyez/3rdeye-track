@@ -1,4 +1,9 @@
 #include "yunet_rknn_detector.h"
+#include "cv_utils.h"
+#include "rga.h"
+#include "im2d.h"
+#include "RgaUtils.h"
+#include "dma_alloc.h"
 
 static void dump_tensor_attr(rknn_tensor_attr *attr)
 {
@@ -18,7 +23,6 @@ YunetRKNN::YunetRKNN(const char *rknn_model)
     rknn_context ctx = 0;
 
     ret = rknn_init(&ctx, (char *)rknn_model, 0, 0, NULL);
-    this->rknn_ctx = ctx;
 
     if (ret < 0)
     {
@@ -130,4 +134,112 @@ YunetRKNN::YunetRKNN(const char *rknn_model)
     printf("model input height=%d, width=%d, channel=%d\n",
            app_ctx.model_height, app_ctx.model_width, app_ctx.model_channel);
 
+}
+
+YunetRKNN::~YunetRKNN()
+{
+    if (app_ctx.input_attrs != NULL)
+    {
+        free(app_ctx.input_attrs);
+        app_ctx.input_attrs = NULL;
+    }
+    if (app_ctx.output_attrs != NULL)
+    {
+        free(app_ctx.output_attrs);
+        app_ctx.output_attrs = NULL;
+    }
+    for (int i = 0; i < app_ctx.io_num.n_input; i++) {
+        if (app_ctx.input_mems[i] != NULL) {
+            rknn_destroy_mem(app_ctx.rknn_ctx, app_ctx.input_mems[i]);
+        }
+    }
+    for (int i = 0; i < app_ctx.io_num.n_output; i++) {
+        if (app_ctx.output_mems[i] != NULL) {
+            rknn_destroy_mem(app_ctx.rknn_ctx, app_ctx.output_mems[i]);
+        }
+    }
+    if (app_ctx.rknn_ctx != 0)
+    {
+        rknn_destroy(app_ctx.rknn_ctx);
+        app_ctx.rknn_ctx = 0;
+    }
+}
+
+void YunetRKNN::preprocess(const cv::Mat &img, cv::Mat &in, letterbox_info &info)
+{
+    cv::Mat img_copy = img.clone();
+    letterbox(img_copy, imgsz[0], imgsz[1], info);
+    in = img_copy.clone();
+}
+
+
+std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, float nms_threshold)
+{
+    std::vector<BBox> bboxes;
+    int ret = 0;
+
+    // set input data. dst_rga_buf is for letterox output, and inputmem_rga_buf is for rknn input
+    // you should copy dst_rga_buf to inputmem_rga_buf
+    cv::Mat img_dst;
+    letterbox_info info;
+    preprocess(img, img_dst, info);
+    int dst_height = img_dst.rows;
+    int dst_width = img_dst.cols;
+    int format = RK_FORMAT_BGR_888;
+    rga_buffer_t dst_rga_buf, inputmem_rga_buf;
+    char *dst_buf;
+    int dst_fd = 0;
+    rga_buffer_handle_t dst_handle, inputmem_handle;
+    int dst_buf_size;
+    
+    dst_buf_size = dst_height * dst_width * get_bpp_from_format(format);
+    ret = dma_buf_alloc(RV1106_CMA_HEAP_PATH, dst_buf_size, &dst_fd, (void **)&dst_buf);
+    if (ret) {
+        printf("dst_buf_size dma_buf_alloc failed\n");
+        return bboxes;
+    }
+    memcpy(dst_buf, img_dst.data, dst_buf_size);
+    dma_sync_cpu_to_device(dst_fd);
+    dst_handle = importbuffer_fd(dst_fd, dst_buf_size);
+    if (dst_handle == 0) {
+        printf("importbuffer_fd failed\n");
+        return bboxes;
+    }
+    dst_rga_buf = wrapbuffer_handle(dst_handle, dst_width, dst_height, format);
+
+    inputmem_handle = importbuffer_fd(app_ctx.input_mems[0]->fd, dst_buf_size);
+    if (inputmem_handle == 0) {
+        printf("importbuffer_fd failed\n");
+        return bboxes;
+    }
+    inputmem_rga_buf = wrapbuffer_handle(inputmem_handle, dst_width, dst_height, format);
+
+    // copy dst_rga_buf to inputmem_rga_buf
+    ret = imcheck(dst_rga_buf, inputmem_rga_buf, {}, {});
+    if (IM_STATUS_NOERROR != ret) {
+        printf("%d, check error! %s", __LINE__, imStrError((IM_STATUS)ret));
+        return bboxes;
+    }
+    ret = imcopy(dst_rga_buf, inputmem_rga_buf);
+    if (ret == IM_STATUS_SUCCESS) {
+        printf("%s running success!\n");
+    } else {
+        printf("%s running failed\n");
+        return bboxes;
+    }
+    /* rknn run */
+    ret = rknn_run(app_ctx.rknn_ctx, nullptr);
+
+    if (ret < 0) {
+        printf("run error %d\n", ret);
+        return bboxes;
+    }
+
+    // TODO: get output data
+    rknn_tensor_mem **_outputs = (rknn_tensor_mem **)app_ctx.output_mems;
+    // print app_ctx.output_mems[0][0~1000]
+    for (int i = 0; i < 1600; i++) {
+        printf("0x%X ", ((uint8_t *)_outputs[3]->virt_addr)[i]);
+    }
+    return bboxes;
 }

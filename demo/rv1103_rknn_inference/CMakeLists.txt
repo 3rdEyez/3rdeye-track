@@ -51,12 +51,25 @@ endif()
 set(OpenCV_DIR ${CMAKE_CURRENT_BINARY_DIR}/opencv-mobile/lib/cmake/opencv4)
 find_package(OpenCV REQUIRED)
 
+
+##################################
+### add allocator sources
+##################################
+file(GLOB_RECURSE allocator_srcs ${CMAKE_CURRENT_SOURCE_DIR}/allocator/*.cpp)
+add_library(allocator STATIC ${allocator_srcs})
+target_include_directories(allocator PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/allocator/dma)
+target_include_directories(allocator PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/allocator/drm)
+
+
 # include SORTTracker
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../SORTTracker SORTTracker.lib)
 
 include_directories(
     ${rknn2lib_armhf_uclibc_extract_path}/rknpu2/include
-    ${librga_armhf_uclibc_extract_path}/librga/include)
+    ${librga_armhf_uclibc_extract_path}/include)
+
+message("####################################################")
+message((${librga_armhf_uclibc_extract_path}/librga/include))
 
 add_executable(rv1103_rknn_inference_demo
     main.cpp
@@ -69,4 +82,9 @@ target_link_libraries(rv1103_rknn_inference_demo
     ${RKNN_LIB}
     ${LIBRGA_LIB}
     ${OpenCV_LIB}
+    allocator
     SORTTracker)
+
+install(TARGETS rv1103_rknn_inference_demo RUNTIME DESTINATION .)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../models/rknn/yunet_n_320_320.rknn DESTINATION .)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../media/bus.jpg DESTINATION .)

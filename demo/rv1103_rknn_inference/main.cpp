@@ -10,7 +10,7 @@
 std::mutex mtx;
 typedef std::pair<int, cv::Mat> payload_t;
 
-constexpr int LOOP_N = 50;
+constexpr int LOOP_N = 500;
 
 int main(int argc, char const *argv[])
 {
@@ -46,7 +46,7 @@ int main(int argc, char const *argv[])
         mtx.lock();
         if (imgQ.empty()) {
             mtx.unlock();
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
             continue;
         }
         auto p = imgQ.front();

@@ -7,8 +7,19 @@
 #include "det_utils.h"
 #include <iostream>
 
+
+inline static int32_t __clip(float val, float min, float max)
+{
+    float f = val <= min ? min : (val >= max ? max : val);
+    return f;
+}
+static int8_t qnt_f32_to_affine(float f32, int32_t zp, float scale)
+{
+    float dst_val = (f32 / scale) + zp;
+    int8_t res = (int8_t)__clip(dst_val, -128, 127);
+    return res;
+}
 static float deqnt_affine_to_f32(int8_t qnt, int32_t zp, float scale) { return ((float)qnt - (float)zp) * scale; }
-static float deqnt_affine_u8_to_f32(uint8_t qnt, int32_t zp, float scale) { return ((float)qnt - (float)zp) * scale; }
 
 inline float fast_exp(float x)
 {
@@ -34,6 +45,19 @@ static std::vector<Box> box_decode(const std::vector<Box> &boxes, Vec3f grid, in
             out.push_back(Box{x, y, w, h});
         }
     }
+    return out;
+}
+
+Box box_decode_at(Box box, Vec3f grid, int stride, int row, int col)
+{
+    size_t height = grid.size();
+    size_t width = grid[0].size();
+    Box out;
+    float x = box.x * stride + grid[row][col][0];
+    float y = box.y * stride + grid[row][col][1];
+    float w = fast_exp(box.w) * stride;
+    float h = fast_exp(box.h) * stride;
+    out = Box{x, y, w, h};
     return out;
 }
 
@@ -323,20 +347,19 @@ static void letterbox_rga(cv::Mat& img, int new_width, int new_height, letterbox
 
 void YunetRKNN::preprocess(cv::Mat &img, cv::Mat &in, letterbox_info &info)
 {
-    letterbox_rga(img, imgsz[0], imgsz[1], info);
+    letterbox(img, imgsz[0], imgsz[1], info);
 }
 
 
+static Vec3f grid_40x40 = meshgrid(40, 40, 8);
+static Vec3f grid_20x20 = meshgrid(20, 20, 16);
+static Vec3f grid_10x10 = meshgrid(10, 10, 32);
 std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, float nms_threshold)
 {
     std::vector<BBox> valid_result;
     std::vector<float> scores_keep;
     std::vector<Box> boxes, boxes_keep;
     std::vector<std::vector<float>> kps, kps_keep;
-    Vec3f grid_40x40 = meshgrid(40, 40, 8);
-    Vec3f grid_20x20 = meshgrid(20, 20, 16);
-    Vec3f grid_10x10 = meshgrid(10, 10, 32);
-
     int ret = 0;
     // set input data. dst_rga_buf is for letterox output, and inputmem_rga_buf is for rknn input
     // you should copy dst_rga_buf to inputmem_rga_buf
@@ -345,7 +368,7 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
     letterbox_info info;
     preprocess(img_dst, img_dst, info);
     // print info
-    printf("letterbox info: x=%d, y=%d, s=%f\n", info.offset_x, info.offset_y, info.scale);
+    // printf("letterbox info: x=%d, y=%d, s=%f\n", info.offset_x, info.offset_y, info.scale);
     int dst_height = img_dst.rows;
     int dst_width = img_dst.cols;
     int format = RK_FORMAT_BGR_888;
@@ -395,90 +418,67 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
     /* set up rknn input buffer */
     ret = imcopy(dst_rga_buf, inputmem_rga_buf);
     if (ret == IM_STATUS_SUCCESS) {
-        printf("%s running success!\n");
+        // printf("%s running success!\n");
     } else {
         printf("%s running failed\n");
         goto out;
     }
     /* rknn run */
     ret = rknn_run(app_ctx.rknn_ctx, nullptr);
-
     if (ret < 0) {
         printf("run error %d\n", ret);
         goto out;
     }
-
-    // TODO: get output data
     /* get zero points and scales */
     for (int i = 0; i < app_ctx.io_num.n_output; i++) {
         out_tensor_scale_list.push_back(app_ctx.output_attrs[i].scale);
         out_tensor_zero_point_list.push_back(app_ctx.output_attrs[i].zp);
     }
-    
     // box_stride_8 keypoints_stride_8 meshgrid_40X40
     for (int i = 0; i < 1600; i++) {
         int8_t *pb = (int8_t *)_outputs[6]->virt_addr;
         int8_t *pk = (int8_t *)_outputs[9]->virt_addr;
         int8_t *box_row = pb + i * 4;
-        int8_t *kps_row = pk + i * 10;
         boxes.push_back({
-            (float)(box_row[0] - out_tensor_zero_point_list[6]) * out_tensor_scale_list[6],
-            (float)(box_row[1] - out_tensor_zero_point_list[6]) * out_tensor_scale_list[6],
-            (float)(box_row[2] - out_tensor_zero_point_list[6]) * out_tensor_scale_list[6],
-            (float)(box_row[3] - out_tensor_zero_point_list[6]) * out_tensor_scale_list[6]
-        });
-        kps.push_back({
-            (float)(kps_row[0] - out_tensor_zero_point_list[9]) * out_tensor_scale_list[9],
-            (float)(kps_row[1] - out_tensor_zero_point_list[9]) * out_tensor_scale_list[9],
-            (float)(kps_row[2] - out_tensor_zero_point_list[9]) * out_tensor_scale_list[9],
-            (float)(kps_row[3] - out_tensor_zero_point_list[9]) * out_tensor_scale_list[9]
+            deqnt_affine_to_f32(box_row[0], out_tensor_zero_point_list[6], out_tensor_scale_list[6]),
+            deqnt_affine_to_f32(box_row[1], out_tensor_zero_point_list[6], out_tensor_scale_list[6]),
+            deqnt_affine_to_f32(box_row[2], out_tensor_zero_point_list[6], out_tensor_scale_list[6]),
+            deqnt_affine_to_f32(box_row[3], out_tensor_zero_point_list[6], out_tensor_scale_list[6])
         });
     }
-    boxes = box_decode(boxes, grid_40x40, 8);
-    // kps = kps_decode(kps, grid_40x40, 8);
+    // boxes = box_decode(boxes, grid_40x40, 8);
     for (int i = 0; i < 1600; i++) {
         float score = deqnt_affine_to_f32(*((int8_t *)_outputs[0]->virt_addr + i), out_tensor_zero_point_list[0], out_tensor_scale_list[0]);
         score = score * deqnt_affine_to_f32(*((int8_t *)_outputs[3]->virt_addr + i), out_tensor_zero_point_list[3], out_tensor_scale_list[3]);
         score = sqrtf(score);
         if (score > score_threshold) { 
             scores_keep.push_back(score);
-            boxes_keep.push_back( boxes[i]);
-            // kps_keep.push_back(kps[i]);
+            boxes_keep.push_back(box_decode_at(boxes[i], grid_40x40, 8, i / 40, i % 40));
         } 
     }
     boxes.clear();
     kps.clear();
-    
     
     // box_stride_16 keypoints_stride_16 meshgrid_20X20
     for (int i = 0; i < 400; i++) {
         int8_t *pb = (int8_t *)_outputs[7]->virt_addr;
         int8_t *pk = (int8_t *)_outputs[10]->virt_addr;
         int8_t *box_row = pb + i * 4;
-        int8_t *kps_row = pk + i * 10;
         boxes.push_back({
             (float)(box_row[0] - out_tensor_zero_point_list[7]) * out_tensor_scale_list[7],
             (float)(box_row[1] - out_tensor_zero_point_list[7]) * out_tensor_scale_list[7],
             (float)(box_row[2] - out_tensor_zero_point_list[7]) * out_tensor_scale_list[7],
             (float)(box_row[3] - out_tensor_zero_point_list[7]) * out_tensor_scale_list[7]
         });
-        kps.push_back({
-            (float)(kps_row[0] - out_tensor_zero_point_list[10]) * out_tensor_scale_list[10],
-            (float)(kps_row[1] - out_tensor_zero_point_list[10]) * out_tensor_scale_list[10],
-            (float)(kps_row[2] - out_tensor_zero_point_list[10]) * out_tensor_scale_list[10],
-            (float)(kps_row[3] - out_tensor_zero_point_list[10]) * out_tensor_scale_list[10]
-        });
     }
-    boxes = box_decode(boxes, grid_20x20, 16);
-    // kps = kps_decode(kps, grid_20x20, 16);
+    // boxes = box_decode(boxes, grid_20x20, 16);
     for (int i = 0; i < 400; i++) {
         float score = deqnt_affine_to_f32(*((int8_t *)_outputs[1]->virt_addr + i), out_tensor_zero_point_list[1], out_tensor_scale_list[1]);
         score = score * deqnt_affine_to_f32(*((int8_t *)_outputs[4]->virt_addr + i), out_tensor_zero_point_list[4], out_tensor_scale_list[4]);
         score = sqrtf(score);
         if (score > score_threshold) {
             scores_keep.push_back(score);
-            boxes_keep.push_back(boxes[i]);
-            // kps_keep.push_back(kps[i]);
+            boxes_keep.push_back(box_decode_at(boxes[i], grid_20x20, 16, i / 20, i % 20));
         }
     }
     boxes.clear();
@@ -489,30 +489,21 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
         int8_t *pb = (int8_t *)_outputs[8]->virt_addr;
         int8_t *pk = (int8_t *)_outputs[11]->virt_addr;
         int8_t *box_row = pb + i * 4;
-        int8_t *kps_row = pk + i * 10;
         boxes.push_back({
             (float)(box_row[0] - out_tensor_zero_point_list[8]) * out_tensor_scale_list[8],
             (float)(box_row[1] - out_tensor_zero_point_list[8]) * out_tensor_scale_list[8],
             (float)(box_row[2] - out_tensor_zero_point_list[8]) * out_tensor_scale_list[8],
             (float)(box_row[3] - out_tensor_zero_point_list[8]) * out_tensor_scale_list[8]
         });
-        kps.push_back({
-            (float)(kps_row[0] - out_tensor_zero_point_list[11]) * out_tensor_scale_list[11],
-            (float)(kps_row[1] - out_tensor_zero_point_list[11]) * out_tensor_scale_list[11],
-            (float)(kps_row[2] - out_tensor_zero_point_list[11]) * out_tensor_scale_list[11],
-            (float)(kps_row[3] - out_tensor_zero_point_list[11]) * out_tensor_scale_list[11]
-        });
     }
-    boxes = box_decode(boxes, grid_10x10, 32);
-    // kps = kps_decode(kps, grid_10x10, 32);
+    // boxes = box_decode(boxes, grid_10x10, 32);
     for (int i = 0; i < 100; i++) {
         float score = deqnt_affine_to_f32(*((int8_t *)_outputs[2]->virt_addr + i), out_tensor_zero_point_list[2], out_tensor_scale_list[2]);
         score = score * deqnt_affine_to_f32(*((int8_t *)_outputs[5]->virt_addr + i), out_tensor_zero_point_list[5], out_tensor_scale_list[5]);
         score = sqrtf(score);
         if (score > score_threshold) {
             scores_keep.push_back(score);
-            boxes_keep.push_back(boxes[i]);
-            // kps_keep.push_back(kps[i]);
+            boxes_keep.push_back(box_decode_at(boxes[i], grid_10x10, 32, i / 10, i % 10));
         }
     }
     
@@ -542,5 +533,6 @@ out:
     }
     if (dst_buf != NULL)
         dma_buf_free(dst_buf_size, &dst_fd, dst_buf);
+ 
     return valid_result;
 }

@@ -10,6 +10,16 @@
 static float deqnt_affine_to_f32(int8_t qnt, int32_t zp, float scale) { return ((float)qnt - (float)zp) * scale; }
 static float deqnt_affine_u8_to_f32(uint8_t qnt, int32_t zp, float scale) { return ((float)qnt - (float)zp) * scale; }
 
+inline float fast_exp(float x)
+{
+    union {
+        uint32_t i;
+        float f;
+    } v{};
+    v.i = (1 << 23) * (1.4426950409 * x + 126.93490512f);
+    return v.f;
+}
+
 static std::vector<Box> box_decode(const std::vector<Box> &boxes, Vec3f grid, int stride)
 {
     size_t height = grid.size();
@@ -19,8 +29,8 @@ static std::vector<Box> box_decode(const std::vector<Box> &boxes, Vec3f grid, in
         for (int j = 0; j < width; j++) {
             float x = boxes[i * width + j].x * stride + grid[i][j][0];
             float y = boxes[i * width + j].y * stride + grid[i][j][1];
-            float w = expf(boxes[i * width + j].w) * stride;
-            float h = expf(boxes[i * width + j].h) * stride;
+            float w = fast_exp(boxes[i * width + j].w) * stride;
+            float h = fast_exp(boxes[i * width + j].h) * stride;
             out.push_back(Box{x, y, w, h});
         }
     }
@@ -313,7 +323,7 @@ static void letterbox_rga(cv::Mat& img, int new_width, int new_height, letterbox
 
 void YunetRKNN::preprocess(cv::Mat &img, cv::Mat &in, letterbox_info &info)
 {
-    letterbox(img, imgsz[0], imgsz[1], info);
+    letterbox_rga(img, imgsz[0], imgsz[1], info);
 }
 
 
@@ -425,7 +435,7 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
         });
     }
     boxes = box_decode(boxes, grid_40x40, 8);
-    kps = kps_decode(kps, grid_40x40, 8);
+    // kps = kps_decode(kps, grid_40x40, 8);
     for (int i = 0; i < 1600; i++) {
         float score = deqnt_affine_to_f32(*((int8_t *)_outputs[0]->virt_addr + i), out_tensor_zero_point_list[0], out_tensor_scale_list[0]);
         score = score * deqnt_affine_to_f32(*((int8_t *)_outputs[3]->virt_addr + i), out_tensor_zero_point_list[3], out_tensor_scale_list[3]);
@@ -433,7 +443,7 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
         if (score > score_threshold) { 
             scores_keep.push_back(score);
             boxes_keep.push_back( boxes[i]);
-            kps_keep.push_back(kps[i]);
+            // kps_keep.push_back(kps[i]);
         } 
     }
     boxes.clear();
@@ -460,7 +470,7 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
         });
     }
     boxes = box_decode(boxes, grid_20x20, 16);
-    kps = kps_decode(kps, grid_20x20, 16);
+    // kps = kps_decode(kps, grid_20x20, 16);
     for (int i = 0; i < 400; i++) {
         float score = deqnt_affine_to_f32(*((int8_t *)_outputs[1]->virt_addr + i), out_tensor_zero_point_list[1], out_tensor_scale_list[1]);
         score = score * deqnt_affine_to_f32(*((int8_t *)_outputs[4]->virt_addr + i), out_tensor_zero_point_list[4], out_tensor_scale_list[4]);
@@ -468,7 +478,7 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
         if (score > score_threshold) {
             scores_keep.push_back(score);
             boxes_keep.push_back(boxes[i]);
-            kps_keep.push_back(kps[i]);
+            // kps_keep.push_back(kps[i]);
         }
     }
     boxes.clear();
@@ -494,7 +504,7 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
         });
     }
     boxes = box_decode(boxes, grid_10x10, 32);
-    kps = kps_decode(kps, grid_10x10, 32);
+    // kps = kps_decode(kps, grid_10x10, 32);
     for (int i = 0; i < 100; i++) {
         float score = deqnt_affine_to_f32(*((int8_t *)_outputs[2]->virt_addr + i), out_tensor_zero_point_list[2], out_tensor_scale_list[2]);
         score = score * deqnt_affine_to_f32(*((int8_t *)_outputs[5]->virt_addr + i), out_tensor_zero_point_list[5], out_tensor_scale_list[5]);
@@ -502,7 +512,7 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
         if (score > score_threshold) {
             scores_keep.push_back(score);
             boxes_keep.push_back(boxes[i]);
-            kps_keep.push_back(kps[i]);
+            // kps_keep.push_back(kps[i]);
         }
     }
     

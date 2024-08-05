@@ -7,8 +7,9 @@ if [ ! -d $BUILD_DIR ]; then
 fi
 
 cd $BUILD_DIR
-cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=install ..
-make install
+cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_CXX_FLAGS="-D PROFILER_ON" -D CMAKE_INSTALL_PREFIX=install ..
+make clean
+make install -j8
 rm install/lib -r
 rm install/inc -r
 sshpass -p luckfox scp -r install root@192.168.1.11:~

@@ -364,9 +364,9 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
     // set input data. dst_rga_buf is for letterox output, and inputmem_rga_buf is for rknn input
     // you should copy dst_rga_buf to inputmem_rga_buf
     rknn_tensor_mem **_outputs = (rknn_tensor_mem **)app_ctx.output_mems;
-    cv::Mat img_dst = img.clone();
+    PROFILER(cv::Mat img_dst = img.clone(), "cv::Mat clone");
     letterbox_info info;
-    preprocess(img_dst, img_dst, info);
+    PROFILER(preprocess(img_dst, img_dst, info), "preprocess");
     // print info
     // printf("letterbox info: x=%d, y=%d, s=%f\n", info.offset_x, info.offset_y, info.scale);
     int dst_height = img_dst.rows;
@@ -424,7 +424,7 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
         goto out;
     }
     /* rknn run */
-    ret = rknn_run(app_ctx.rknn_ctx, nullptr);
+    PROFILER(ret = rknn_run(app_ctx.rknn_ctx, nullptr), "rknn_run");
     if (ret < 0) {
         printf("run error %d\n", ret);
         goto out;

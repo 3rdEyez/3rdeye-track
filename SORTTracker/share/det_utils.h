@@ -4,6 +4,8 @@
 #include "dtype.h"
 #include <vector>
 #include <algorithm>
+#include <chrono>
+#include <iostream>
 
 std::vector<BBox> nms(std::vector<BBox> &bboxes, float iou_threshold);
 std::vector<BBox> bbox_select(const std::vector<BBox> &bboxes, uint32_t cls_to_select);
@@ -11,6 +13,14 @@ BBox_xyxy xywh2xyxy(BBox_xywh box);
 float bbox_iou(BBox_xyxy box1, BBox_xyxy box2);
 BBox xywh2xyxy(float x, float y, float w, float h);
 
+void set_timer_start_us();
+void get_timer_count_us(std::string tag);
+
+#define PROFILER(exper, TAG) \
+    set_timer_start_us(); \
+    exper; \
+    get_timer_count_us(TAG);\
+    
 const int color_list[80][3] = {
     //{255, 255, 255}, //bg
     {216,  82,  24}, {236, 176,  31}, {125,  46, 141}, {118, 171,  47}, { 76, 189, 237},

@@ -68,7 +68,6 @@ include_directories(
     ${rknn2lib_armhf_uclibc_extract_path}/rknpu2/include
     ${librga_armhf_uclibc_extract_path}/include)
 
-message("####################################################")
 message((${librga_armhf_uclibc_extract_path}/librga/include))
 
 add_executable(rv1103_rknn_inference_demo

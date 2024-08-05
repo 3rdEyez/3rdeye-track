@@ -7,7 +7,7 @@ if [ ! -d $BUILD_DIR ]; then
 fi
 
 cd $BUILD_DIR
-cmake -D CMAKE_INSTALL_PREFIX=install ..
+cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=install ..
 make install
 rm install/lib -r
 rm install/inc -r

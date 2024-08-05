@@ -105,3 +105,4 @@ models/
 
 # 忽略测试媒体文件
 media/
+*.jpg

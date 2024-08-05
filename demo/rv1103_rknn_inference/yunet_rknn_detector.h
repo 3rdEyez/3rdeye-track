@@ -41,7 +41,7 @@ public:
     std::vector<BBox> detect(const cv::Mat &img, float score_threshold, float nms_threshold);
     std::vector<std::string> names{"person"};
 private:
-    void preprocess(cv::Mat &img, cv::Mat &in, letterbox_info &info);
+    void preprocess(const cv::Mat &img, cv::Mat &in, letterbox_info &info);
 };
 
 typedef std::vector<float> Vec1f;

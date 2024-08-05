@@ -1,12 +1,33 @@
 #include "yunet_rknn_detector.h"
 #include "cv_utils.h"
-#include "rga.h"
-#include "im2d.h"
-#include "RgaUtils.h"
-#include "dma_alloc.h"
 #include "det_utils.h"
+#include "rga_buffer_helper.h"
 #include <iostream>
 
+void letterbox_rga(const cv::Mat& cv_src, cv::Mat &cv_dst, int new_width, int new_height, letterbox_info& info)
+{
+    int width = cv_src.cols;
+    int height = cv_src.rows;
+    int & offset_x = info.offset_x, & offset_y = info.offset_y;
+    float & scale = info.scale;
+    scale = std::min((float)new_width / (float)width, (float)new_height / (float)height);
+    int new_unscaled_width = (int)(scale * (float)width);
+    int new_unscaled_height = (int)(scale * (float)height);
+    offset_x = (new_width - new_unscaled_width) / 2;
+    offset_y = (new_height - new_unscaled_height) / 2;
+    im_rect src_resize_rect, dst_rect;
+    src_resize_rect = {0, 0, new_unscaled_width, new_unscaled_height};
+    dst_rect = {offset_x, offset_y, new_unscaled_width, new_unscaled_height};
+
+    rga_buffer_helper src(cv_src.cols, cv_src.rows, RK_FORMAT_BGR_888);
+    rga_buffer_helper src_resize(new_unscaled_width, new_unscaled_height, RK_FORMAT_BGR_888);
+    rga_buffer_helper dst(new_width, new_height, RK_FORMAT_BGR_888);
+    src.load_from(cv_src.data, cv_src.cols * cv_src.rows * 3);
+    imresize(src.get_rga_buf(), src_resize.get_rga_buf());
+    improcess(src_resize.get_rga_buf(), dst.get_rga_buf(), {}, src_resize_rect, dst_rect, {}, IM_SYNC);
+    cv_dst = cv::Mat(new_height, new_width, CV_8UC3);
+    memcpy(cv_dst.data, dst.get_buf(), new_width * new_height * 3);
+}
 
 inline static int32_t __clip(float val, float min, float max)
 {
@@ -327,27 +348,9 @@ out:
     return -1;
 }
 
-static void letterbox_rga(cv::Mat& img, int new_width, int new_height, letterbox_info& info)
+void YunetRKNN::preprocess(const cv::Mat &img, cv::Mat &in, letterbox_info &info)
 {
-    int width = img.cols;
-    int height = img.rows;
-    int & offset_x = info.offset_x, & offset_y = info.offset_y;
-    float & scale = info.scale;
-    scale = std::min((float)new_width / (float)width, (float)new_height / (float)height);
-    int new_unscaled_width = (int)(scale * (float)width);
-    int new_unscaled_height = (int)(scale * (float)height);
-    offset_x = (new_width - new_unscaled_width) / 2;
-    offset_y = (new_height - new_unscaled_height) / 2;
-    cv::Mat img_copy = img.clone();
-    cvbgr888_rga_resize(img, img_copy, cv::Size(new_unscaled_width, new_unscaled_height));
-    img = img_copy;
-    cv::copyMakeBorder(img, img, offset_y, offset_y, offset_x, offset_x, cv::BORDER_CONSTANT, cv::Scalar(114, 114, 114));
-}
-
-
-void YunetRKNN::preprocess(cv::Mat &img, cv::Mat &in, letterbox_info &info)
-{
-    letterbox(img, imgsz[0], imgsz[1], info);
+    letterbox_rga(img, in, imgsz[0], imgsz[1], info);
 }
 
 
@@ -364,9 +367,9 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
     // set input data. dst_rga_buf is for letterox output, and inputmem_rga_buf is for rknn input
     // you should copy dst_rga_buf to inputmem_rga_buf
     rknn_tensor_mem **_outputs = (rknn_tensor_mem **)app_ctx.output_mems;
-    PROFILER(cv::Mat img_dst = img.clone(), "cv::Mat clone");
     letterbox_info info;
-    PROFILER(preprocess(img_dst, img_dst, info), "preprocess");
+    cv::Mat img_dst;
+    preprocess(img, img_dst, info);
     // print info
     // printf("letterbox info: x=%d, y=%d, s=%f\n", info.offset_x, info.offset_y, info.scale);
     int dst_height = img_dst.rows;
@@ -424,7 +427,7 @@ std::vector<BBox> YunetRKNN::detect(const cv::Mat &img, float score_threshold, f
         goto out;
     }
     /* rknn run */
-    PROFILER(ret = rknn_run(app_ctx.rknn_ctx, nullptr), "rknn_run");
+    ret = rknn_run(app_ctx.rknn_ctx, nullptr);
     if (ret < 0) {
         printf("run error %d\n", ret);
         goto out;

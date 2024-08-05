@@ -72,6 +72,7 @@ message((${librga_armhf_uclibc_extract_path}/librga/include))
 
 add_executable(rv1103_rknn_inference_demo
     main.cpp
+    rga_buffer_helper.cpp
     yunet_rknn_detector.cpp)
 
 add_definitions(

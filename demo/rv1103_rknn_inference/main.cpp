@@ -10,7 +10,7 @@
 std::mutex mtx;
 typedef std::pair<int, cv::Mat> payload_t;
 
-constexpr int LOOP_N = 500;
+constexpr int LOOP_N = 50;
 
 int main(int argc, char const *argv[])
 {
@@ -57,16 +57,16 @@ int main(int argc, char const *argv[])
             std::cerr << "read frame failed" << std::endl;
             return -1;
         }
+        auto bboxes = detector.detect(img, 0.8, 0.5);
+        draw_bboxes(img, bboxes, detector.names, 0.8, 1);
         if (p.first == LOOP_N - 1) {
+            cv::imwrite("result.jpg", img);
             std::cout << "loop end" << std::endl;
             break;
         }
-        auto bboxes = detector.detect(img, 0.8, 0.5);
-        draw_bboxes(img, bboxes, detector.names, 0.8, 1);
     }
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "average time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / LOOP_N << "ms" << std::endl;
-    cv::imwrite("result.jpg", img);
     producer.join();
     return 0;
 }

@@ -70,3 +70,20 @@ std::vector<BBox> bbox_select(const std::vector<BBox> &bboxes, uint32_t cls_to_s
     }
     return result;
 }
+
+static auto _start = std::chrono::high_resolution_clock::now();
+static auto _end = std::chrono::high_resolution_clock::now();
+void set_timer_start_us()
+{
+    #ifdef PROFILER_ON
+    _start = std::chrono::high_resolution_clock::now();
+    #endif
+}
+
+void get_timer_count_us(std::string tag)
+{
+    #ifdef PROFILER_ON
+    _end = std::chrono::high_resolution_clock::now();
+    std::cout << "[PROFILER]" + tag << ": Time elapsed: " << std::chrono::duration_cast<std::chrono::microseconds>(_end - _start).count() << " us" << std::endl;
+    #endif
+}

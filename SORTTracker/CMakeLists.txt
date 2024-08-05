@@ -8,7 +8,7 @@ find_package(OpenCV REQUIRED)
 
 add_library(SORTTracker STATIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/hungarian-algorithm-cpp/Hungarian.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/utils/utils.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/utils/det_utils.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/utils/cv_utils.cpp
     src/kalman_filter.cpp
     src/sort_tracker.cpp

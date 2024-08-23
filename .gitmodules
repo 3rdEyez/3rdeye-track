@@ -1,3 +1,0 @@
-[submodule "SORTTracker/3rdparty/hungarian-algorithm-cpp"]
-	path = SORTTracker/3rdparty/hungarian-algorithm-cpp
-	url = https://github.com/mcximing/hungarian-algorithm-cpp

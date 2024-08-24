@@ -24,15 +24,16 @@ int codec = cv::VideoWriter::fourcc('a', 'v', 'c', '1'); // 编码器
 
 int main(int argc, char const *argv[])
 {
-    cv::Mat frame;
-    cv::VideoCapture cap(TEST_VIDEO_FILE);
-    uint64_t frame_id = 0;
+    if (argc != 4) {
+        std::cerr << "Usage: " << argv[0] << " <ncnn.param> <ncnn.bin> <video_path>" << std::endl;
+        return -1;
+    }
 
-    ncnn_detector detector(
-        YOLOV8_NCNN_MODEL"/model.ncnn.param",
-        YOLOV8_NCNN_MODEL"/model.ncnn.bin",
-        true
-    );
+    ncnn_detector detector(argv[1], argv[2], true);
+
+    cv::Mat frame;
+    cv::VideoCapture cap(argv[3]);
+    uint64_t frame_id = 0;
 
     int tracker_0 = tracker_init(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);
     int tracker_2 = tracker_init(SIGMA_Q, SIGMA_R, TRACK_MAX_LEN, MAX_AGE);

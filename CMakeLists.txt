@@ -25,7 +25,7 @@ endif()
 add_subdirectory(${CMAKE_SOURCE_DIR}/SORTTracker)
 add_subdirectory(${CMAKE_SOURCE_DIR}/demo/ncnn_predict)
 add_subdirectory(${CMAKE_SOURCE_DIR}/demo/yolov8_SORT)
-add_subdirectory(${CMAKE_SOURCE_DIR}/demo/yunet_demo)
+add_subdirectory(${CMAKE_SOURCE_DIR}/demo/yunet_SORT)
 
 # you can't add this demo here, because it needs arm-rockchip830-linux-uclibcgnueabihf-gcc
 # you should goto it's directory and build it manually↓↓↓↓

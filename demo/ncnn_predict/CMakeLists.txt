@@ -19,6 +19,10 @@ include_directories(
     ${CMAKE_SOURCE_DIR}
 )
 
+if(NOT TARGET SORTTracker)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../SORTTracker SORTTracker.lib)
+endif()
+
 target_link_libraries(
     ncnn_predict PRIVATE 
     ncnn

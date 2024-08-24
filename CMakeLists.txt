@@ -22,7 +22,6 @@ if(NOT EXISTS ${CMAKE_SOURCE_DIR}/media)
     ${CMAKE_SOURCE_DIR})
 endif()
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/SORTTracker)
 add_subdirectory(${CMAKE_SOURCE_DIR}/demo/ncnn_predict)
 add_subdirectory(${CMAKE_SOURCE_DIR}/demo/yolov8_SORT)
 add_subdirectory(${CMAKE_SOURCE_DIR}/demo/yunet_SORT)

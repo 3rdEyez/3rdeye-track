@@ -15,6 +15,10 @@ ncnn_detector.cpp
 main.cpp
 )
 
+if(NOT TARGET SORTTracker)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../SORTTracker SORTTracker.lib)
+endif()
+
 target_link_libraries(
     yolov8_sort PRIVATE 
     ncnn

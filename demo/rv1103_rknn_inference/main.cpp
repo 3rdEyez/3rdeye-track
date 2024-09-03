@@ -10,7 +10,7 @@
 std::mutex mtx;
 typedef std::pair<int, cv::Mat> payload_t;
 
-constexpr int LOOP_N = 500;
+constexpr int LOOP_N = 100;
 
 int main(int argc, char const *argv[])
 {

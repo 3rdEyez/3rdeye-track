@@ -33,3 +33,11 @@ cmake .. -D OpenCV_DIR=/opt/cpplib/opencv-4.10.0_x86_64/lib/cmake/opencv4 \
 	../media/cxk.mp4 
 
 ```
+
+特别注意，demo/rv1103_rknn_inference为特殊用例，需要使用RV1103开发板，并使用RKNN进行推理，请参考demo/rv1103_rknn_inference/README.md
+
+TODO:
+
+- [ ] 添加更多模型
+- [ ] 添加更多demo
+- [ ] 添加更多文档

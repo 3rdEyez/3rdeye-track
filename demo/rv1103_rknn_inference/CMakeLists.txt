@@ -27,7 +27,7 @@ file (ARCHIVE_EXTRACT INPUT ${rknn2lib_armhf_uclibc_archive} DESTINATION ${rknn2
 ##############################
 set(librga_armhf_uclibc_url "https://cdn.fyrabh.top/repo_resurces/3rdeye_track/libs/librga.zip")
 set(librga_armhf_uclibc_archive "${CMAKE_CURRENT_BINARY_DIR}/librga.zip")
-set(librga_armhf_uclibc_extract_path "${CMAKE_CURRENT_BINARY_DIR}/librga")
+set(librga_armhf_uclibc_extract_path "${CMAKE_CURRENT_BINARY_DIR}")
 set(LIBRGA_LIB "${CMAKE_CURRENT_BINARY_DIR}/librga/Linux/armhf_uclibc/librga.a")
 
 if (NOT EXISTS ${librga_armhf_uclibc_archive})
@@ -36,6 +36,7 @@ if (NOT EXISTS ${librga_armhf_uclibc_archive})
 endif()
 
 file (ARCHIVE_EXTRACT INPUT ${librga_armhf_uclibc_archive} DESTINATION ${librga_armhf_uclibc_extract_path})
+include_directories("${librga_armhf_uclibc_extract_path}/librga/include")
 
 ################################################
 ### setup opencv-mobile for rv1103
@@ -68,7 +69,7 @@ include_directories(
     ${rknn2lib_armhf_uclibc_extract_path}/rknpu2/include
     ${librga_armhf_uclibc_extract_path}/include)
 
-message((${librga_armhf_uclibc_extract_path}/librga/include))
+message(${librga_armhf_uclibc_extract_path}/librga/include)
 
 add_executable(rv1103_rknn_inference_demo
     main.cpp

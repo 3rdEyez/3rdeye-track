@@ -2,7 +2,7 @@
 
 This project is a sub-project of "the 3rd eye of Satori Komeiji in Touhou Project," aimed at achieving its target tracking capabilities.
 
-SORTTracker提供一组符方法，能够方便地调用SORT跟踪算法，demo下的几个例子展示了它的使用方法。注意本项目依赖于OpenCV以及ncnn
+SORTTracker提供一组方法，能够方便地调用SORT跟踪算法，demo下的几个例子展示了它的使用方法。注意本项目依赖于OpenCV以及ncnn
 
 
 demo使用方法：
